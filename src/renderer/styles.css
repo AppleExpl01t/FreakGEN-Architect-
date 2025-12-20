@@ -901,3 +901,33 @@ textarea {
     color: #555;
     margin-top: 5px;
 }
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(26, 26, 30, 0.95);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 20px;
+    color: var(--text-primary);
+    font-size: 13px;
+    z-index: 10000;
+    box-shadow: 0 4px 20px rgba(255, 140, 0, 0.3);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast.hidden {
+    display: block !important;
+    transform: translateY(100px);
+    opacity: 0;
+    pointer-events: none;
+}

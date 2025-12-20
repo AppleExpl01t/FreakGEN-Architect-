@@ -1,6 +1,6 @@
 {
   "name": "microfreak-architect",
-  "version": "2.9.0",
+  "version": "3.0.0",
   "description": "Premium patch generator for Arturia MicroFreak",
   "main": "src/main.js",
   "scripts": {
@@ -14,6 +14,11 @@
     "productName": "FreakGEN Architect",
     "directories": {
       "output": "dist"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "AppleExpl01t",
+      "repo": "FreakGEN-Architect-"
     },
     "win": {
       "target": [
@@ -50,5 +55,8 @@
   "devDependencies": {
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
   }
 }

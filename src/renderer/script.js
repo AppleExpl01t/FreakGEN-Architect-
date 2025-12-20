@@ -3,6 +3,30 @@ const path = require('path');
 const os = require('os');
 const { ipcRenderer, shell } = require('electron');
 
+// Toast Notification
+const toast = document.getElementById('toast');
+const toastMessage = document.getElementById('toast-message');
+
+function showToast(message, duration = 3000) {
+    toastMessage.innerText = message;
+    toast.classList.remove('hidden');
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, duration);
+}
+
+// Listen for update status from main process
+ipcRenderer.on('update-status', (event, data) => {
+    if (data.type === 'uptodate') {
+        showToast(`✅ ${data.message}`, 4000);
+    } else if (data.type === 'available') {
+        showToast(`📥 ${data.message}`, 5000);
+    }
+});
+
 const oscTypes = ["BasicWaves", "Superwave", "Wavetable", "Harmonic", "KarplusStrong", "Virtual Analog", "Waveshaper", "Two Op FM", "Formant", "Chords", "Speech", "Modal", "Noise", "Bass", "SawX", "Vocoder", "Harm", "WaveUser", "Sample", "Scan Grains", "Cloud Grains", "Hit Grains"];
 const chordTypes = ["Oct", "5th", "sus4", "minor", "m7", "m9", "m11", "69", "maj9", "maj7", "Major"];
 const oscParams = {
