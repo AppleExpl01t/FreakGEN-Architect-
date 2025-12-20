@@ -23,9 +23,12 @@
             <header class="sidebar-header">
                 <div class="header-row">
                     <div class="logo">FREAK<span class="highlight">GEN</span></div>
-                    <button id="btn-settings" class="settings-btn" aria-label="Settings">⚙️</button>
+                    <div class="header-controls">
+                        <button id="btn-settings" class="settings-btn" aria-label="Settings"
+                            data-tooltip="Settings">⚙️</button>
+                    </div>
                 </div>
-                <div class="subtitle">ARCHITECT V2.7</div>
+                <div class="subtitle">ARCHITECT V2.8</div>
             </header>
 
             <div class="controls">
@@ -77,10 +80,20 @@
 
                 <div class="action-area">
                     <div id="style-reveal" class="status-text">Ready to Build</div>
-                    <button id="btn-generate" class="btn-primary"
-                        data-tooltip="Generate a new complete patch based on current settings. Locks are respected.">
-                        <span>GENERATE PATCH</span>
-                        <div class="btn-shine"></div>
+                    <div class="button-row">
+                        <button id="btn-generate" class="btn-primary"
+                            data-tooltip="Generate a new complete patch based on current settings. Locks are respected.">
+                            <span>GENERATE</span>
+                            <div class="btn-shine"></div>
+                        </button>
+                        <button id="btn-save" class="btn-secondary" data-tooltip="Save current patch to library.">
+                            <span>SAVE</span>
+                        </button>
+                    </div>
+                    <button id="btn-gallery" class="btn-secondary"
+                        style="margin-top:10px; width:100%; text-align:center; padding:12px;"
+                        data-tooltip="Open Saved Presets Gallery">
+                        📂 VIEW LIBRARY
                     </button>
                 </div>
             </div>
@@ -103,6 +116,14 @@
                         <input type="checkbox" id="toggle-tooltips" checked>
                     </div>
 
+                    <div class="setting-item">
+                        <label>Library Path</label>
+                        <div class="path-select">
+                            <input type="text" id="lib-path-display" readonly placeholder="Default">
+                            <button id="btn-change-path">...</button>
+                        </div>
+                    </div>
+
                     <div class="credits">
                         <h4>Credits</h4>
                         <div class="credit-row">
@@ -120,17 +141,69 @@
             </div>
         </div>
 
+        <!-- Save Preset Modal -->
+        <div id="save-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Save Preset</h3>
+                    <button id="btn-close-save" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label for="save-name">Preset Name</label>
+                        <input type="text" id="save-name" placeholder="My Awesome Lead">
+                    </div>
+                    <div class="input-group">
+                        <label for="save-desc">Description</label>
+                        <textarea id="save-desc" rows="3" placeholder="Notes about usage..."></textarea>
+                    </div>
+                    <button id="btn-confirm-save" class="btn-primary" style="margin-top:15px;">SAVE PRESET</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Tooltip Element -->
         <div id="tooltip" class="tooltip hidden"></div>
 
         <!-- Main Content / Results -->
+        <!-- Main Content / Results -->
         <main class="content-area">
-            <div id="output-grid" class="output-grid hidden">
-                <!-- Content will be injected here by JS -->
+            <!-- Generator View -->
+            <div id="view-generator">
+                <div id="output-grid" class="output-grid hidden">
+                    <!-- Content will be injected here by JS -->
+                </div>
+                <div id="placeholder-message" class="placeholder-message">
+                    <h2>Initialize Generation</h2>
+                    <p>Select a style and intensity to architect a new sound.</p>
+                </div>
             </div>
-            <div id="placeholder-message" class="placeholder-message">
-                <h2>Initialize Generation</h2>
-                <p>Select a style and intensity to architect a new sound.</p>
+
+            <!-- Gallery View -->
+            <div id="view-gallery">
+                <div class="gallery-toolbar">
+                    <input type="text" id="gallery-search" placeholder="Search presets...">
+                    <select id="filter-style">
+                        <option value="all">All Styles</option>
+                        <!-- Populated JS -->
+                    </select>
+                    <select id="filter-engine">
+                        <option value="all">All Engines</option>
+                    </select>
+                    <select id="filter-complexity">
+                        <option value="all">All Complexity</option>
+                        <option value="simple">Simple</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="high">High</option>
+                        <option value="extreme">Extreme</option>
+                    </select>
+                    <button id="btn-sort-date" class="icon-btn" data-tooltip="Toggle Sort: Name / Date">📅</button>
+                </div>
+                <div id="gallery-grid" class="gallery-grid">
+                    <!-- Populated -->
+                </div>
+                <button id="btn-back-gen" class="btn-secondary" style="margin-top:20px; width:auto;">&larr; Back to
+                    Generator</button>
             </div>
         </main>
     </div>

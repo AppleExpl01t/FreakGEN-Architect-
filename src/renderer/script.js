@@ -1,3 +1,8 @@
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { ipcRenderer, shell } = require('electron');
+
 const oscTypes = ["BasicWaves", "Superwave", "Wavetable", "Harmonic", "KarplusStrong", "Virtual Analog", "Waveshaper", "Two Op FM", "Formant", "Chords", "Speech", "Modal", "Noise", "Bass", "SawX", "Vocoder", "Harm", "WaveUser", "Sample", "Scan Grains", "Cloud Grains", "Hit Grains"];
 const chordTypes = ["Oct", "5th", "sus4", "minor", "m7", "m9", "m11", "69", "maj9", "maj7", "Major"];
 const oscParams = {
@@ -31,8 +36,16 @@ const fixedDests = ["Pitch", "Wave", "Timbre", "Cutoff"];
 const assignTargets = ["LFO Rate", "Reso", "Env Dec", "Env Sus", "Cyc Rise", "Cyc Fall", "Cyc Hold", "Cyc Amt", "Glide", "Osc Shape", "Spread", "Unispread", "Arp Rate"];
 
 // State
-let currentPatch = { master: [], osc: [], env: [], cyc: [], lfo: [], matrixData: null };
+// State
+let currentPatch = { master: [], osc: [], env: [], cyc: [], lfo: [], matrixData: null, style: "init", intensity: "simple", engine: "unknown" };
 let locks = { master: false, osc: false, env: false, cyc: false, lfo: false, matrix: false };
+let savedPresets = [];
+let libraryPath = localStorage.getItem('freakgen_lib_path');
+// Since "app" is main process, we use os.homedir for renderer
+if (!libraryPath) {
+    libraryPath = path.join(os.homedir(), 'Documents', 'FreakGEN_Library');
+}
+let gallerySort = "name"; // 'name' or 'date'
 
 // Utilities
 const rInt = (max) => Math.floor(Math.random() * max);
@@ -58,6 +71,32 @@ const btnCloseSettings = document.getElementById('btn-close-settings');
 const toggleTooltips = document.getElementById('toggle-tooltips');
 const tooltipEl = document.getElementById('tooltip');
 
+// New UI Elements (v2.8)
+const btnSave = document.getElementById('btn-save');
+const btnGallery = document.getElementById('btn-gallery');
+const viewGenerator = document.getElementById('view-generator');
+const viewGallery = document.getElementById('view-gallery');
+const btnBackGen = document.getElementById('btn-back-gen');
+
+// Save Modal
+const saveModal = document.getElementById('save-modal');
+const btnCloseSave = document.getElementById('btn-close-save');
+const btnConfirmSave = document.getElementById('btn-confirm-save');
+const inpSaveName = document.getElementById('save-name');
+const inpSaveDesc = document.getElementById('save-desc');
+
+// Gallery
+const galleryGrid = document.getElementById('gallery-grid');
+const searchInput = document.getElementById('gallery-search');
+const filterStyle = document.getElementById('filter-style');
+const filterEngine = document.getElementById('filter-engine');
+const filterComplexity = document.getElementById('filter-complexity');
+const btnSortDate = document.getElementById('btn-sort-date');
+
+// Settings Paths
+const libPathDisplay = document.getElementById('lib-path-display');
+const btnChangePath = document.getElementById('btn-change-path');
+
 let tooltipTimeout;
 let tooltipsEnabled = true;
 document.body.classList.add('tooltips-enabled');
@@ -70,7 +109,34 @@ oscTypes.forEach(t => {
     selEngine.appendChild(opt);
 });
 
+// Init Library
+initLibrary();
+
 btnGenerate.addEventListener('click', generatePatch);
+btnSave.addEventListener('click', openSaveWindow);
+btnGallery.addEventListener('click', showGallery);
+btnBackGen.addEventListener('click', showGenerator);
+
+// Save Modal Listeners
+btnCloseSave.addEventListener('click', () => saveModal.classList.add('hidden'));
+btnConfirmSave.addEventListener('click', performSave);
+
+// Gallery Listeners
+searchInput.addEventListener('input', renderGallery);
+filterStyle.addEventListener('change', renderGallery);
+filterEngine.addEventListener('change', renderGallery);
+filterComplexity.addEventListener('change', renderGallery);
+btnSortDate.addEventListener('click', toggleSort);
+
+// Path Listener
+btnChangePath.addEventListener('click', async () => {
+    const newPath = await ipcRenderer.invoke('select-dir');
+    if (newPath) {
+        libraryPath = newPath;
+        localStorage.setItem('freakgen_lib_path', libraryPath);
+        initLibrary();
+    }
+});
 
 // Modal Logic
 btnSettings.addEventListener('click', () => settingsModal.classList.remove('hidden'));
@@ -139,12 +205,21 @@ document.addEventListener('mouseout', (e) => {
 });
 
 function generatePatch() {
+    // Ensure we are viewing the generator (triggers transition if in gallery)
+    showGenerator();
+
     let style = selStyle.value;
     const intensity = selIntensity.value;
+    const engineVal = selEngine.value;
 
     // Handle Random Style
-    const styleList = ["bass", "brass", "keys", "lead", "organ", "pad", "percussion", "sequence", "sfx", "strings", "vocoder"];
-    if (style === "random") style = styleList[rInt(styleList.length)];
+    const styles = ["bass", "brass", "keys", "lead", "organ", "pad", "percussion", "sequence", "sfx", "strings", "vocoder"];
+    if (style === "random") style = styles[rInt(styles.length)];
+
+    // Update Metadata
+    currentPatch.style = selStyle.value; // Stored as selected
+    currentPatch.realStyle = style;      // Stored as generated
+    currentPatch.intensity = intensity;
 
     // Update text
     statusText.innerText = `Generated Style: ${style.toUpperCase()}`;
@@ -154,37 +229,33 @@ function generatePatch() {
     outputGrid.classList.remove('hidden');
     outputGrid.innerHTML = ''; // Clear previous
 
-    // Generate Data
-    // Generate Data (Respect Locks)
-    // We only generate if NOT locked. If locked, we keep currentPatch data.
-    // Exception: If Matrix matches "Inactive" states, we might need to handle dependencies, 
-    // but per requirements, strict locking is preferred.
+    // Generate OSC first to determine voice mode needs (Constraint: Chords -> Mono)
+    // Actually, we pass 'style' and 'engine' to generateOsc.
+    if (!locks.osc) currentPatch.osc = generateOsc(style, engineVal);
 
+    // Check if Chords used
+    const oscTypeObj = currentPatch.osc.find(x => x.label === "Type");
+    const isChords = oscTypeObj && oscTypeObj.val === "Chords";
+    currentPatch.engine = oscTypeObj ? oscTypeObj.val : "Unknown";
+
+    if (!locks.master) currentPatch.master = generateMaster(style, intensity, isChords);
+    if (!locks.env) currentPatch.env = generateEnv(style);
+
+    // Matrix Generation (if unlocked)
+    // We do this BEFORE LFO/Cyc so we know what is used
     if (!locks.matrix) {
         currentPatch.matrixData = generateMatrixData(style, intensity);
     }
 
-    // Check matrix usage for dependency logic IF specifically regenerating dependant sections
     const usedSources = currentPatch.matrixData.usedSources;
 
-    // Constraint: Chords engine disactivates Paraphony (Manual p.44)
-    // We must generate OSC first to know if we need to force Mono, OR generating Master first helps set the stage?
-    // Let's generate OSC first if strictly needed, but `generateOsc` is independent.
-    // Actually, `generateMaster` decides Voice Mode. We should pass the chosen Osc Type to `generateMaster` or `locks` logic.
-    // Easier: Generate OSC, then if type is Chords, force Master voice mode to Monophonic in the Master generation or post-correction.
+    // LFO & Cyc (Regenerate if unlocked, respecting usage?)
+    // Actually, pure random generation doesn't care about usage, 
+    // but we might want to ensure they aren't "Blank" if we just generated a matrix that uses them.
+    // However, `generateCyc` and `generateLFO` take an `active` boolean.
+    // If we just generated a NEW matrix, we know if they are active.
+    // If Matrix is LOCKED, we use the OLD usage data.
 
-    const engine = selEngine.value;
-    if (!locks.osc) currentPatch.osc = generateOsc(style, engine);
-
-    // Check for Chords constraint
-    const oscTypeObj = currentPatch.osc.find(x => x.label === "Type");
-    const isChords = oscTypeObj && oscTypeObj.val === "Chords";
-
-    if (!locks.master) currentPatch.master = generateMaster(style, isChords);
-    if (!locks.env) currentPatch.env = generateEnv(style);
-
-    // For LFO/Cyc, if they are unlocked, we regenerate based on CURRENT matrix usage.
-    // If they are locked, they stay as is (even if matrix says they are unused, or vice versa).
     if (!locks.cyc) currentPatch.cyc = generateCyc(usedSources.has("CycEnv"));
     if (!locks.lfo) currentPatch.lfo = generateLFO(usedSources.has("LFO"));
 
@@ -194,14 +265,20 @@ function generatePatch() {
     outputGrid.appendChild(createCard("Amp & Filter Env", currentPatch.env, "env"));
     outputGrid.appendChild(createCard("Cycling Envelope", currentPatch.cyc, "cyc"));
     outputGrid.appendChild(createCard("LFO", currentPatch.lfo, "lfo"));
-
-    // Render Matrix Card (Special Layout)
     outputGrid.appendChild(createMatrixCard(currentPatch.matrixData, currentPatch.master, "matrix"));
 }
 
 // Generators
-function generateMaster(style, forceMono = false) {
-    let vMode = (style === "lead" || style === "bass" || style === "percussion" || forceMono) ? "Monophonic" : (style === "pad" ? "Paraphonic" : ["Monophonic", "Paraphonic", "Unison"][rInt(3)]);
+function generateMaster(style, intensity, forceMono = false) {
+    let vMode;
+    if (style === "lead" || style === "bass" || style === "percussion" || forceMono) {
+        vMode = "Monophonic";
+    } else if (style === "pad") {
+        // 70% Paraphonic, 30% Split between Mono/Unison
+        vMode = Math.random() < 0.7 ? "Paraphonic" : ["Monophonic", "Unison"][rInt(2)];
+    } else {
+        vMode = ["Monophonic", "Paraphonic", "Unison"][rInt(3)];
+    }
     let uni = "0";
     if (vMode === "Unison") {
         const spots = [0, 4, 7, 8, 12];
@@ -210,10 +287,19 @@ function generateMaster(style, forceMono = false) {
     let fType = (style === "percussion") ? ["BP", "HP"][rInt(2)] : ["LP", "BP", "HP"][rInt(3)];
     let cutoff = (style === "percussion") ? rVal(500, 5000) + "Hz" : (Math.random() * 20 + 0.5).toFixed(1) + "kHz";
 
+    // Glide Logic
+    let glideVal = null;
+    if (intensity === 'high' && Math.random() < 0.25) {
+        glideVal = getTime(10, 500); // 10ms to 0.5s
+    } else if (intensity === 'extreme' && Math.random() < 0.50) {
+        glideVal = getTime(10, 10000); // 10ms to 10s
+    }
+
     return [
         { label: "Octave", val: (style === "bass" ? -2 : 0), tooltip: "Use the Octave |< >| buttons above the keyboard." },
         { label: "Voice Mode", val: vMode, tooltip: "Press 'Paraphonic'. Shift+Para for Unison/Mono." },
         { label: "Unison Spread", val: uni !== "0" ? uni : null, tooltip: "Amount of detune. (Check Utility menu or Shift functions for Unison Spread)." },
+        { label: "Glide", val: glideVal, tooltip: "Turn the Glide knob." },
         { label: "Filter Type", val: fType, tooltip: "Press the 'Filter Type' button to cycle (LP/BP/HP)." },
         { label: "Cutoff", val: cutoff, tooltip: "Turn the Cutoff knob in the Analog Filter section." },
         { label: "Resonance", val: rVal(10, 80) + "%", tooltip: "Turn the Resonance knob in the Analog Filter section." }
@@ -235,6 +321,8 @@ function generateOsc(style, forceEngine = "random") {
         waveVal = chordTypes[rInt(chordTypes.length)];
     } else if (type === "Wavetable") {
         waveVal = rVal(1, 16);
+    } else if (type === "Vocoder") {
+        waveVal = rVal(50, 100) + "%";
     }
 
     return [
@@ -589,4 +677,223 @@ function createMatrixCard(m, masterData, lockKey) {
 
     card.appendChild(grid);
     return card;
+}
+
+// --- Library & Gallery Logic ---
+
+function initLibrary() {
+    // Ensure dir exists
+    if (!fs.existsSync(libraryPath)) {
+        fs.mkdirSync(libraryPath, { recursive: true });
+    }
+    libPathDisplay.value = libraryPath;
+    loadPresets();
+    populateFilters();
+}
+
+function loadPresets() {
+    savedPresets = [];
+    const files = fs.readdirSync(libraryPath);
+    files.forEach(f => {
+        if (f.endsWith('.json')) {
+            try {
+                const data = JSON.parse(fs.readFileSync(path.join(libraryPath, f)));
+                savedPresets.push({
+                    filename: f,
+                    ...data,
+                    // Ensure date is valid object or string
+                    date: data.date ? new Date(data.date) : new Date(0)
+                });
+            } catch (e) {
+                console.error("Failed to load preset", f);
+            }
+        }
+    });
+}
+
+function populateFilters() {
+    // Populate Styles found in presets? Or just strict list?
+    // Let's use the strict list but maybe mark active ones? For now, standard list.
+    const styleList = ["bass", "brass", "keys", "lead", "organ", "pad", "percussion", "sequence", "sfx", "strings", "vocoder"];
+    filterStyle.innerHTML = '<option value="all">All Styles</option>';
+    styleList.forEach(s => {
+        filterStyle.innerHTML += `<option value="${s}">${s.toUpperCase()}</option>`;
+    });
+
+    // Populate Engines
+    filterEngine.innerHTML = '<option value="all">All Engines</option>';
+    oscTypes.forEach(t => {
+        filterEngine.innerHTML += `<option value="${t}">${t}</option>`;
+    });
+}
+
+function openSaveWindow() {
+    if (!currentPatch.matrixData) return; // Nothing generated
+    saveModal.classList.remove('hidden');
+    inpSaveName.value = `My ${currentPatch.realStyle || 'Patch'} ${rInt(99)}`;
+    inpSaveDesc.value = "";
+    inpSaveName.focus();
+}
+
+function performSave() {
+    const name = inpSaveName.value.trim() || "Untitled";
+    const desc = inpSaveDesc.value.trim();
+
+    const presetData = {
+        name,
+        description: desc,
+        date: new Date().toISOString(),
+        style: currentPatch.realStyle,
+        intensity: currentPatch.intensity,
+        engine: currentPatch.osc.find(o => o.label === "Type")?.val || "Unknown",
+        patch: currentPatch
+    };
+
+    const safeName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `${safeName}_${Date.now()}.json`;
+
+    fs.writeFileSync(path.join(libraryPath, filename), JSON.stringify(presetData, null, 2));
+
+    saveModal.classList.add('hidden');
+    loadPresets();
+
+    // Feedback? Button text flash?
+    const oldText = btnSave.innerText;
+    btnSave.innerText = "SAVED!";
+    setTimeout(() => btnSave.innerText = oldText, 2000);
+}
+
+const contentArea = document.querySelector('.content-area');
+contentArea.classList.add('view-active-gen'); // Default
+
+function showGallery() {
+    contentArea.classList.remove('view-active-gen');
+    contentArea.classList.add('view-active-gallery');
+    loadPresets(); // Refresh
+    renderGallery();
+}
+
+function showGenerator() {
+    contentArea.classList.remove('view-active-gallery');
+    contentArea.classList.add('view-active-gen');
+}
+
+function toggleSort() {
+    gallerySort = gallerySort === 'name' ? 'date' : 'name';
+    renderGallery();
+}
+
+function renderGallery() {
+    galleryGrid.innerHTML = '';
+
+    const search = searchInput.value.toLowerCase();
+    const fStyle = filterStyle.value;
+    const fEngine = filterEngine.value;
+    const fComplex = filterComplexity.value;
+
+    let filtered = savedPresets.filter(p => {
+        // Search
+        const matchText = (p.name + p.description).toLowerCase().includes(search);
+        // Style
+        const matchStyle = fStyle === 'all' || p.style === fStyle;
+        // Engine
+        const matchEngine = fEngine === 'all' || (p.engine === fEngine);
+        // Complexity
+        const matchComplex = fComplex === 'all' || p.intensity === fComplex;
+
+        return matchText && matchStyle && matchEngine && matchComplex;
+    });
+
+    // Grouping by Complexity
+    // Sort
+    if (gallerySort === 'name') {
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+        filtered.sort((a, b) => b.date - a.date); // Newest first
+    }
+
+    // If user wants Grouping by A-Z (Complexity), we process that visually.
+    // The request said: "organize... in groups based on their complexity in ABC order".
+    // So we should group primarily by complexity, then sort inside.
+
+    // Sort logic override for grouping
+    // Group order: Simple -> Moderate -> High -> Extreme
+    const complexityOrder = { 'simple': 0, 'moderate': 1, 'high': 2, 'extreme': 3 };
+
+    // We sort primary comp, secondary selected sort
+    filtered.sort((a, b) => {
+        const cA = complexityOrder[a.intensity] || 99;
+        const cB = complexityOrder[b.intensity] || 99;
+
+        if (cA !== cB) return cA - cB;
+
+        return gallerySort === 'name' ? a.name.localeCompare(b.name) : b.date - a.date;
+    });
+
+    let currentGroup = null;
+
+    filtered.forEach(p => {
+        // Group Header
+        if (p.intensity !== currentGroup) {
+            currentGroup = p.intensity;
+            const h = document.createElement('div');
+            h.className = 'group-header';
+            h.innerText = `${p.intensity.toUpperCase()} COMPLEXITY`;
+            galleryGrid.appendChild(h);
+        }
+
+        const card = document.createElement('div');
+        card.className = 'preset-card';
+        card.setAttribute('data-id', p.filename);
+
+        const eng = p.engine || 'Unknown';
+
+        card.innerHTML = `
+            <h4>${p.name}</h4>
+            <div class="meta">
+                <span class="tag">${p.style}</span>
+                <span class="tag" style="color:var(--accent)">${eng}</span>
+            </div>
+            <div class="desc" style="font-size:11px; margin-top:8px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.description || "No description"}</div>
+        `;
+
+        card.onclick = () => loadPresetToGen(p);
+
+        galleryGrid.appendChild(card);
+    });
+
+    if (filtered.length === 0) {
+        galleryGrid.innerHTML = '<div style="color:#666; font-style:italic;">No presets found matching content.</div>';
+    }
+}
+
+function loadPresetToGen(presetData) {
+    // Switch view
+    showGenerator();
+
+    // Load Data
+    currentPatch = presetData.patch;
+
+    // To properly "Load" it, we just re-render the cards.
+    // We can reuse the rendering logic from generatePatch but skip generation.
+    renderCardsFromCurrent();
+
+    // Also update header/status
+    statusText.innerText = `LOADED: ${presetData.name.toUpperCase()}`;
+
+    // Show description?
+    // Maybe update placeholder or inject a info banner.
+}
+
+function renderCardsFromCurrent() {
+    outputGrid.classList.remove('hidden');
+    outputGrid.innerHTML = '';
+    placeholder.style.display = 'none';
+
+    outputGrid.appendChild(createCard("Master & Voice", currentPatch.master, "master"));
+    outputGrid.appendChild(createCard("Oscillator / Type", currentPatch.osc, "osc"));
+    outputGrid.appendChild(createCard("Amp & Filter Env", currentPatch.env, "env"));
+    outputGrid.appendChild(createCard("Cycling Envelope", currentPatch.cyc, "cyc"));
+    outputGrid.appendChild(createCard("LFO", currentPatch.lfo, "lfo"));
+    outputGrid.appendChild(createMatrixCard(currentPatch.matrixData, currentPatch.master, "matrix"));
 }

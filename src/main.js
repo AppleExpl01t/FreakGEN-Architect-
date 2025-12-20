@@ -1,10 +1,10 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1000,
-        height: 800,
+        width: 1200,
+        height: 900,
         backgroundColor: '#0f0f11',
         icon: path.join(__dirname, '../assets/icon.png'),
         show: false, // Wait until ready-to-show to prevent flicker
@@ -21,6 +21,13 @@ function createWindow() {
         win.show();
     });
 }
+
+ipcMain.handle('select-dir', async () => {
+    const result = await dialog.showOpenDialog({
+        properties: ['openDirectory']
+    });
+    return result.filePaths[0];
+});
 
 app.whenReady().then(() => {
     createWindow();
