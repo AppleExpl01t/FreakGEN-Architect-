@@ -29,6 +29,11 @@ ipcMain.handle('select-dir', async () => {
     return result.filePaths[0];
 });
 
+ipcMain.handle('save-dialog', async (event, options) => {
+    const result = await dialog.showSaveDialog(options);
+    return result.filePath;
+});
+
 app.whenReady().then(() => {
     createWindow();
 

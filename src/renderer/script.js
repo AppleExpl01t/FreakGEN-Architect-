@@ -97,6 +97,7 @@ const filterStyle = document.getElementById('filter-style');
 const filterEngine = document.getElementById('filter-engine');
 const filterComplexity = document.getElementById('filter-complexity');
 const btnSortDate = document.getElementById('btn-sort-date');
+const btnBackup = document.getElementById('btn-backup');
 
 // Settings Paths
 const libPathDisplay = document.getElementById('lib-path-display');
@@ -118,7 +119,6 @@ oscTypes.forEach(t => {
 initLibrary();
 
 btnGenerate.addEventListener('click', generatePatch);
-btnGenerate.addEventListener('click', generatePatch);
 btnUndo.addEventListener('click', restoreHistory);
 btnRedo.addEventListener('click', goForward);
 btnSave.addEventListener('click', openSaveWindow);
@@ -135,6 +135,7 @@ filterStyle.addEventListener('change', renderGallery);
 filterEngine.addEventListener('change', renderGallery);
 filterComplexity.addEventListener('change', renderGallery);
 btnSortDate.addEventListener('click', toggleSort);
+btnBackup.addEventListener('click', backupGallery);
 
 // Path Listener
 btnChangePath.addEventListener('click', async () => {
@@ -990,4 +991,59 @@ function updateHistoryButtons() {
     btnRedo.disabled = patchFuture.length === 0;
     btnRedo.style.opacity = patchFuture.length === 0 ? "0.5" : "1";
     btnRedo.setAttribute("data-tooltip", `Redo (${patchFuture.length})`);
+}
+
+async function backupGallery() {
+    if (!savedPresets.length) {
+        alert("No presets to backup!");
+        return;
+    }
+
+    const oldText = btnBackup.innerText;
+    btnBackup.innerText = "⏳";
+    btnBackup.disabled = true;
+
+    try {
+        const zip = new JSZip();
+
+        // Add each file to the zip
+        savedPresets.forEach(p => {
+            const filePath = path.join(libraryPath, p.filename);
+            if (fs.existsSync(filePath)) {
+                // Read as buffer to handle any potential encoding issues, though they are JSON strings
+                const content = fs.readFileSync(filePath);
+                zip.file(p.filename, content);
+            }
+        });
+
+        const content = await zip.generateAsync({ type: "nodebuffer" });
+
+        // Ask for save path
+        const defaultPathName = `FreakGEN_Backup_${new Date().toISOString().split('T')[0]}.zip`;
+        const defaultPath = path.join(os.homedir(), 'Desktop', defaultPathName);
+
+        const savePath = await ipcRenderer.invoke('save-dialog', {
+            title: 'Backup Presets',
+            defaultPath: defaultPath,
+            filters: [{ name: 'Zip Files', extensions: ['zip'] }]
+        });
+
+        if (savePath) {
+            fs.writeFileSync(savePath, content);
+            btnBackup.innerText = "✅";
+            setTimeout(() => {
+                btnBackup.innerText = "📦";
+                btnBackup.disabled = false;
+            }, 2000);
+        } else {
+            btnBackup.innerText = "📦";
+            btnBackup.disabled = false;
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Backup failed: " + err.message);
+        btnBackup.innerText = "❌";
+        btnBackup.disabled = false;
+    }
 }
