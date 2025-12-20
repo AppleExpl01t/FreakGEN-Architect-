@@ -1,6 +1,6 @@
 {
   "name": "microfreak-architect",
-  "version": "3.0.0",
+  "version": "3.3.1",
   "description": "Premium patch generator for Arturia MicroFreak",
   "main": "src/main.js",
   "scripts": {

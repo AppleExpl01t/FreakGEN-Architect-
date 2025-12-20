@@ -33,7 +33,7 @@ body {
 
 .app-container {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: clamp(220px, 25vw, 320px) 1fr;
     height: 100vh;
 }
 
@@ -41,11 +41,14 @@ body {
 .sidebar {
     background: var(--sidebar-bg);
     border-right: 1px solid var(--border);
-    padding: 40px 30px;
+    padding: 30px 20px;
+    /* Reduced default padding slightly */
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     z-index: 10;
+    overflow-y: auto;
+    /* Allow sidebar scrolling on short screens */
 }
 
 .sidebar-header .logo {
@@ -298,8 +301,8 @@ option {
 /* Grid Layout for Cards */
 .output-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 15px;
     padding-bottom: 40px;
 }
 
@@ -464,6 +467,7 @@ option {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .settings-btn {
@@ -591,19 +595,76 @@ option {
 }
 
 /* Responsive adjustments */
-@media (max-width: 800px) {
+/* Responsive adjustments */
+/* Tablet / Small Desktop - Compact Sidebar */
+@media (max-width: 900px) {
+    .sidebar {
+        padding: 20px 15px;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    .sidebar-header .logo {
+        font-size: 20px;
+    }
+
+    .gallery-toolbar {
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .gallery-toolbar input {
+        flex: 1 1 120px;
+    }
+
+    .gallery-toolbar select {
+        flex: 1 1 80px;
+        padding: 6px;
+        font-size: 10px;
+    }
+
+    .gallery-toolbar .icon-btn {
+        padding: 6px;
+        font-size: 12px;
+    }
+}
+
+/* Mobile / Very Narrow - Stack Layout */
+@media (max-width: 550px) {
     .app-container {
         grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
     }
 
     .sidebar {
         border-right: none;
         border-bottom: 1px solid var(--border);
-        padding: 20px;
+        padding: 15px;
+        max-height: 250px;
+        /* Constrain height when stacked */
+        overflow-y: auto;
     }
 
     .content-area {
-        padding: 20px;
+        padding: 15px;
+    }
+
+    .output-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gallery-toolbar {
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .gallery-toolbar input,
+    .gallery-toolbar select {
+        flex: 1 1 100%;
     }
 }
 
@@ -745,26 +806,37 @@ textarea {
 /* Gallery Toolbar */
 .gallery-toolbar {
     display: flex;
-    gap: 15px;
+    gap: 10px;
     margin-bottom: 25px;
     background: var(--sidebar-bg);
     padding: 15px;
     border-radius: 8px;
     border: 1px solid var(--border);
     align-items: center;
+    flex-wrap: wrap;
+    /* Key fix */
 }
 
 .gallery-toolbar input {
-    flex: 1.5;
+    flex: 1 1 150px;
+    /* Grow, shrink, base 150px */
     background: rgba(0, 0, 0, 0.3);
-    min-width: 150px;
+    min-width: 0;
+    /* Allow shrink below flex-basis if absolutely needed */
 }
 
 .gallery-toolbar select {
-    flex: 1;
-    padding: 10px;
+    flex: 1 1 90px;
+    padding: 8px;
     font-size: 11px;
-    min-width: 100px;
+    min-width: 0;
+}
+
+.gallery-toolbar .icon-btn {
+    flex: 0 0 auto;
+    /* Don't grow, don't shrink, auto size */
+    padding: 8px;
+    font-size: 14px;
 }
 
 /* Gallery Grid */

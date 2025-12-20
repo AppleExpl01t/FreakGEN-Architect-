@@ -1,7 +1,10 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const os = require('os');
+
+
 
 // Auto-updater for installed version
 const { autoUpdater } = require('electron-updater');
@@ -195,6 +198,81 @@ ipcMain.handle('trigger-install', async () => {
 ipcMain.handle('check-for-updates-manual', async () => {
     checkForUpdates();
     return { success: true };
+});
+
+// AI Logic Removed
+
+
+
+// --- Error Reporting & Logging ---
+const LOG_FILE = path.join(app.getPath('userData'), 'error_logs.json');
+
+function writeLog(details) {
+    try {
+        let logs = [];
+        if (fs.existsSync(LOG_FILE)) {
+            try {
+                logs = JSON.parse(fs.readFileSync(LOG_FILE, 'utf8'));
+            } catch (e) {
+                // If corrupted, start new
+                logs = [];
+            }
+        }
+
+        // Prune logs older than 24 hours
+        const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+        logs = logs.filter(log => {
+            const logTime = new Date(log.timestamp).getTime();
+            return logTime > twentyFourHoursAgo;
+        });
+
+        // Add new log
+        logs.push({
+            timestamp: new Date().toISOString(),
+            ...details
+        });
+
+        fs.writeFileSync(LOG_FILE, JSON.stringify(logs, null, 2));
+    } catch (err) {
+        console.error('Failed to write to error log:', err);
+    }
+}
+
+ipcMain.handle('log-error', (event, details) => {
+    writeLog(details);
+});
+
+ipcMain.handle('show-error-dialog', (event, { title, message, detail }) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        dialog.showMessageBox(mainWindow, {
+            type: 'error',
+            title: title || 'Error',
+            message: message || 'An unexpected error occurred.',
+            detail: detail || '',
+            buttons: ['OK']
+        });
+    }
+});
+
+// Global Main Process Error Handling
+process.on('uncaughtException', (error) => {
+    writeLog({
+        process: 'main',
+        type: 'uncaughtException',
+        message: error.message,
+        stack: error.stack
+    });
+    console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    writeLog({
+        process: 'main',
+        type: 'unhandledRejection',
+        message: reason instanceof Error ? reason.message : JSON.stringify(reason),
+        stack: reason instanceof Error ? reason.stack : ''
+    });
+    console.error('Unhandled Rejection:', reason);
 });
 
 // App lifecycle
