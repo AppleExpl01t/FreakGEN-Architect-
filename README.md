@@ -6,33 +6,36 @@
 
 Unlike generic randomizers that produce chaotic noise, FreakGEN behaves like a virtual sound designer. It uses "Sound Recipes" to construct musically useful patches (Leads, Pads, Bass, Percussion) while strictly adhering to the physical constraints and modulation architecture of the MicroFreak.
 
-## 🚀 Quick Start Guide (How to Install)
+## 🚀 Quick Start Guide
 
-Follow these simple steps to get FreakGEN running on your Windows, Mac, or Linux computer.
+### Option 1: Portable EXE (Recommended - No Installation Required)
 
-### 1. Install Node.js
-You need the engine that powers this app.
-*   **Download Node.js**: Go to [nodejs.org](https://nodejs.org/) and download the **LTS (Long Term Support)** version.
-*   Run the installer and click "Next" through the default options.
+1. **Download** the latest `FreakGEN Architect-Portable-X.X.X.exe` from the [Releases Page](https://github.com/AppleExpl01t/FreakGEN-Architect-/releases).
+2. **Run it** - Double-click the EXE file. No installation needed!
+3. The application window will open immediately. 🎉
 
-### 2. Get the Code
-You can download this project as a ZIP file or use Git.
-*   **Easy Option (ZIP)**: Click the green **Code** button at the top of this GitHub page and select **Download ZIP**. Extract the folder to your desktop.
-*   **Developer Option (Git)**: Open a terminal and run:
-    ```bash
-    git clone https://github.com/AppleExpl01t/FreakGEN-Architect-.git
-    ```
+> **Note**: Windows may show a SmartScreen warning since the app isn't code-signed. Click "More info" → "Run anyway" to proceed.
 
-### 3. Install & Run
-1.  Open your **Command Prompt** (Windows) or **Terminal** (Mac/Linux).
-2.  Navigate to the folder where you extracted the app.
-    *   *Tip: Type `cd ` (with a space), then drag the folder into the terminal window and hit Enter.*
-3.  Type these commands one by one:
-    ```bash
-    npm install
-    npm start
-    ```
-4.  The application window will open! 🎉
+### Option 2: Install to PC
+
+If you prefer a traditional installation:
+1. Download `FreakGEN Architect-Setup-X.X.X.exe` from the [Releases Page](https://github.com/AppleExpl01t/FreakGEN-Architect-/releases).
+2. Run the installer and follow the prompts.
+3. Launch from your Start Menu or Desktop shortcut.
+
+### Option 3: Run from Source (For Developers)
+
+1. **Install Node.js**: Download from [nodejs.org](https://nodejs.org/) (LTS version).
+2. **Clone the repository**:
+   ```bash
+   git clone https://github.com/AppleExpl01t/FreakGEN-Architect-.git
+   cd FreakGEN-Architect-
+   ```
+3. **Install dependencies and run**:
+   ```bash
+   npm install
+   npm start
+   ```
 
 ---
 
