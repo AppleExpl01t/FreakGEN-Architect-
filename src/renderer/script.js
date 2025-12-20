@@ -154,6 +154,40 @@ btnChangePath.addEventListener('click', async () => {
     }
 });
 
+// Install App Logic
+const btnInstallApp = document.getElementById('btn-install-app');
+const installStatus = document.getElementById('install-status');
+const installSection = document.getElementById('install-section');
+
+// Check if running as installed app or portable
+(async () => {
+    const isPortable = await ipcRenderer.invoke('check-portable');
+    if (!isPortable) {
+        // Already installed, hide the install button
+        installSection.style.display = 'none';
+    } else {
+        installStatus.innerText = 'Running in portable mode.';
+    }
+})();
+
+btnInstallApp.addEventListener('click', async () => {
+    btnInstallApp.disabled = true;
+    btnInstallApp.innerText = '⏳ Checking...';
+
+    const result = await ipcRenderer.invoke('trigger-install');
+
+    if (result.success) {
+        installStatus.innerText = result.message;
+        installStatus.style.color = '#00ff88';
+        btnInstallApp.innerText = '✅ Done';
+    } else {
+        installStatus.innerText = result.message;
+        installStatus.style.color = '#e74c3c';
+        btnInstallApp.innerText = '📥 Install to PC';
+        btnInstallApp.disabled = false;
+    }
+});
+
 // Modal Logic
 btnSettings.addEventListener('click', () => settingsModal.classList.remove('hidden'));
 btnCloseSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));

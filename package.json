@@ -1,29 +1,51 @@
 {
   "name": "microfreak-architect",
-  "version": "2.6.0",
+  "version": "2.9.0",
   "description": "Premium patch generator for Arturia MicroFreak",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder -w"
+    "dist": "electron-builder -w",
+    "dist:portable": "electron-builder -w portable",
+    "dist:installer": "electron-builder -w nsis"
   },
   "build": {
     "appId": "com.microfreak.architect",
-    "productName": "MicroFreak Architect",
+    "productName": "FreakGEN Architect",
     "directories": {
       "output": "dist"
     },
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icon.png"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
     },
     "nsis": {
       "allowToChangeInstallationDirectory": true,
-      "oneClick": false
+      "oneClick": false,
+      "perMachine": false,
+      "installerIcon": "assets/icon.png",
+      "uninstallerIcon": "assets/icon.png",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     }
   },
   "keywords": [],
-  "author": "Antigravity",
+  "author": "Comet620",
   "license": "ISC",
   "devDependencies": {
     "electron": "^33.2.1",
