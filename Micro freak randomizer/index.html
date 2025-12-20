@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroFreak Architect V2.6 Beta</title>
+    <style>
+        :root {
+            --bg-color: #0f0f11;
+            --panel-bg: #1a1a1e;
+            --text-color: #e0e0e0;
+            --accent-color: #ff8c00;
+            --border-color: #333;
+            --lock-color: #4fc3f7;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 650px; width: 100%; background: var(--panel-bg); border-radius: 12px; padding: 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.8); border: 1px solid var(--border-color); }
+        h1 { color: var(--accent-color); text-align: center; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 4px; border-bottom: 2px solid var(--accent-color); padding-bottom: 10px;}
+        .version { text-align: center; font-size: 0.7rem; color: #777; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: #08080a; padding: 15px; border-radius: 8px; border: 1px solid #222;}
+        .full-width { grid-column: span 2; }
+        select, button { width: 100%; padding: 12px; border-radius: 6px; background: #252529; color: white; border: 1px solid var(--border-color); font-size: 1rem; }
+        label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
+        .btn-main { background: var(--accent-color); color: black; font-weight: bold; cursor: pointer; border: none; margin-top: 10px; transition: 0.2s; }
+        .btn-main:hover { background: #ffaa33; }
+        #style-reveal { text-align: center; color: var(--accent-color); font-weight: bold; margin-top: 10px; font-size: 1.1rem; text-transform: uppercase; min-height: 1.2em; }
+        .output-area { margin-top: 25px; border-top: 2px solid var(--accent-color); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; background: rgba(255,140,0,0.1); margin: 25px 0 8px 0; padding: 6px 12px; border-radius: 4px; }
+        .section-title { color: var(--accent-color); font-size: 0.85rem; font-weight: bold; text-transform: uppercase; margin:0; }
+        .lock-container { display: flex; align-items: center; font-size: 0.7rem; color: var(--lock-color); cursor: pointer; }
+        .lock-container input { margin-right: 5px; accent-color: var(--lock-color); }
+        .param-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #28282c; font-family: 'Courier New', monospace; font-size: 0.95rem; }
+        .param-val { color: var(--accent-color); font-weight: bold; }
+        .instruction-box { background: #23190f; border: 1px solid #553300; padding: 12px; margin: 10px 0; font-size: 0.82rem; color: #ffcc80; border-radius: 6px; }
+        .blank-box { opacity: 0.4; border: 1px dashed #444; background: transparent; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>FREAKGEN ARCHITECT</h1>
+    <div class="version">V2.6 Beta - Chord & Logic Update</div>
+    
+    <div class="setup-grid">
+        <div>
+            <label>Design Style</label>
+            <select id="sel-style">
+                <option value="random">Random Style</option>
+                <option value="none">None (Absolute Chaos)</option>
+                <option value="bass">Bass</option>
+                <option value="brass">Brass (Synth)</option>
+                <option value="keys">Keys</option>
+                <option value="lead">Lead</option>
+                <option value="organ">Organ</option>
+                <option value="pad">Pad</option>
+                <option value="percussion">Percussion</option>
+                <option value="sequence">Sequence/Arp</option>
+                <option value="sfx">SFX</option>
+                <option value="strings">Strings (Synth)</option>
+                <option value="vocoder">Vocoder</option>
+            </select>
+        </div>
+        <div>
+            <label>Intensity</label>
+            <select id="sel-intensity">
+                <option value="simple">Simple</option>
+                <option value="moderate" selected>Moderate</option>
+                <option value="high">High</option>
+                <option value="extreme">Extreme</option>
+            </select>
+        </div>
+        <div class="full-width">
+            <div id="style-reveal">Style Selection Pending...</div>
+            <button class="btn-main" onclick="generatePatch()">BUILD PRESET</button>
+        </div>
+    </div>
+
+    <div id="output" class="output-area hidden"></div>
+</div>
+
+<script>
+    const oscTypes = ["BasicWaves", "Superwave", "Wavetable", "Harmonic", "KarplusStrong", "Virtual Analog", "Waveshaper", "Two Op FM", "Formant", "Chords", "Speech", "Modal", "Noise", "Bass", "SawX", "Vocoder"];
+    const chordTypes = ["Oct", "5th", "sus4", "minor", "m7", "m9", "m11", "69", "maj9", "maj7", "Major"];
+    const lfoShapes = ["Sine", "Triangle", "Saw", "Square", "S&H (Random)", "S&H Smooth"];
+    const lfoSyncRates = ["8 bars", "4 bars", "2 bars", "1 bar", "1/2", "1/4", "1/8", "1/16"];
+    const modSources = ["CycEnv", "Envelope", "LFO", "Pressure", "Key/Arp"];
+    const fixedDests = ["Pitch", "Wave", "Timbre", "Cutoff"];
+    
+    // Updated: Removed LFO Amt (non-assignable), Cyc Amt is allowed.
+    const assignTargets = ["LFO Rate", "Reso", "Env Dec", "Env Sus", "Cyc Rise", "Cyc Fall", "Cyc Hold", "Cyc Amt", "Glide", "Osc Shape", "Spread", "Unispread", "Arp Rate"];
+
+    let currentPatch = { master: "", osc: "", env: "", cyc: "", lfo: "", matrixData: null };
+
+    function rInt(max) { return Math.floor(Math.random() * max); }
+    function rVal(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function getTime(minMs, maxMs) {
+        let val = rVal(minMs, maxMs);
+        return val >= 1000 ? (val/1000).toFixed(2) + "s" : val + "ms";
+    }
+
+    function generatePatch() {
+        const out = document.getElementById('output');
+        const reveal = document.getElementById('style-reveal');
+        let style = document.getElementById('sel-style').value;
+        const intensity = document.getElementById('sel-intensity').value;
+
+        const styleList = ["bass", "brass", "keys", "lead", "organ", "pad", "percussion", "sequence", "sfx", "strings", "vocoder"];
+        if (style === "random") style = styleList[rInt(styleList.length)];
+        reveal.innerText = "Style: " + style;
+        out.classList.remove('hidden');
+
+        // Logic sequence: Matrix first to determine usage of LFO/CycEnv
+        currentPatch.matrixData = generateMatrixData(style, intensity);
+        
+        currentPatch.master = generateMaster(style, intensity);
+        currentPatch.osc = generateOsc(style);
+        currentPatch.env = generateEnv(style);
+        currentPatch.cyc = generateCyc(currentPatch.matrixData.usedSources.has("CycEnv"));
+        currentPatch.lfo = generateLFO(currentPatch.matrixData.usedSources.has("LFO"));
+
+        renderAll();
+    }
+
+    function generateMaster(style, intensity) {
+        let vMode = (style === "lead" || style === "bass" || style === "percussion") ? "Monophonic" : (style === "pad" ? "Paraphonic" : ["Monophonic", "Paraphonic", "Unison"][rInt(3)]);
+        let uni = "0";
+        if (vMode === "Unison") {
+            const spots = [0, 4, 7, 8, 12];
+            uni = (spots[rInt(spots.length)] + (Math.random() * 0.246 - 0.123)).toFixed(3);
+        }
+        let fType = (style === "percussion") ? ["BP", "HP"][rInt(2)] : ["LP", "BP", "HP"][rInt(3)];
+        let cutoff = (style === "percussion") ? rVal(500, 5000) + "Hz" : (Math.random() * 20 + 0.5).toFixed(1) + "kHz";
+
+        return {
+            vMode,
+            html: `${row("Octave", (style === "bass" ? -2 : 0))}
+                   ${row("Voice Mode", vMode)}
+                   ${uni !== "0" ? row("Unison Spread", uni) : ""}
+                   ${row("Filter Type", fType)}
+                   ${row("Master Cutoff", cutoff)}
+                   ${row("Master Resonance", rVal(10, 80) + "%")}`
+        };
+    }
+
+    function generateOsc(style) {
+        let type = style === "percussion" ? "Noise" : (style === "vocoder" ? "Vocoder" : oscTypes[rInt(oscTypes.length)]);
+        let waveLabel = "Wave Knob";
+        let waveVal = rVal(0, 100) + "%";
+
+        if (type === "Chords") {
+            waveLabel = "Chord Type";
+            waveVal = chordTypes[rInt(chordTypes.length)];
+        } else if (type === "Wavetable") {
+            waveVal = rVal(1, 16);
+        }
+
+        return `${row("Type", type)}
+                ${row(waveLabel, waveVal)}
+                ${row("Timbre / Shape", rVal(10,90) + "% / " + rVal(10,90) + "%")}`;
+    }
+
+    function generateEnv(style) {
+        let atk = (style === "percussion") ? "0ms" : (style === "pad" ? getTime(1000, 3000) : "5ms");
+        let dec = (style === "percussion") ? getTime(20, 150) : getTime(200, 1000);
+        let fAmt = (style === "percussion" || style === "brass" || style === "pad") ? rVal(40, 95) : rVal(-100, 100);
+        return `${row("Attack", atk)}
+                ${row("Decay/Rel", dec)}
+                ${row("Sustain (Amp)", rVal(0, 100) + "%")}
+                ${row("Filter Amount", fAmt)}`;
+    }
+
+    function generateCyc(active) {
+        if (!active) return `<div class="instruction-box blank-box"><strong>INT - Blank</strong> (CycEnv not in Matrix)</div>`;
+        let mode = ["Env", "Run", "Loop"][rInt(3)];
+        let susLabel = (mode === "Env") ? "Sustain (%)" : "Sustain (Time)";
+        let susVal = (mode === "Env") ? rVal(0, 100) + "%" : getTime(0, 1000);
+        
+        return `${row("Mode", mode)}
+                ${row("Rise / Fall", getTime(10, 1000) + " / " + getTime(10, 1000))}
+                ${row("Rise/Fall Shape", rVal(1,100) + "% / " + rVal(1,100) + "%")}
+                ${row("Hold / " + susLabel, getTime(0, 500) + " / " + susVal)}
+                ${row("Final Amount", rVal(0, 100) + "%")}`;
+    }
+
+    function generateLFO(active) {
+        if (!active) return `<div class="instruction-box blank-box"><strong>INT - Blank</strong> (LFO not in Matrix)</div>`;
+        return `${row("Shape", lfoShapes[rInt(lfoShapes.length)])}
+                ${row("Sync", "OFF")}
+                ${row("Rate", (Math.random() * 50).toFixed(2) + " Hz")}`;
+    }
+
+    function generateMatrixData(style, intensity) {
+        let count = { 'simple': rVal(2,3), 'moderate': rVal(4,7), 'high': rVal(8,12), 'extreme': rVal(15,20) }[intensity];
+        let usedSources = new Set();
+        let usedAssigns = new Set();
+        let connections = [];
+        let config = [];
+        let targets = [...assignTargets];
+        for(let i=0; i<3; i++) config.push(targets.splice(rInt(targets.length), 1)[0]);
+
+        let pairs = new Set();
+        let cols = [...fixedDests, "Assign 1", "Assign 2", "Assign 3"];
+        
+        // Helper to check unison compatibility
+        let vMode = style === "lead" || style === "bass" ? "Mono" : "Other"; 
+
+        for(let i=0; i<count; i++){
+            let s = modSources[rInt(modSources.length)];
+            let d = cols[rInt(cols.length)];
+            
+            // Logic: Skip Unispread if not in Unison mode
+            let targetParam = d.includes("Assign") ? config[parseInt(d.split(" ")[1])-1] : d;
+            if (targetParam === "Unispread" && style !== "unison_check_placeholder") {
+                // We handle the real vMode check during the render loop for simplicity
+            }
+
+            if(pairs.has(s+d)) continue;
+            pairs.add(s+d);
+            usedSources.add(s);
+            if(d.includes("Assign")) usedAssigns.add(d);
+            
+            let a = rVal(-100, 100);
+            connections.push({s, d, a, targetParam});
+        }
+        return { usedSources, usedAssigns, connections, config };
+    }
+
+    function renderAll() {
+        const out = document.getElementById('output');
+        const m = currentPatch.matrixData;
+        const vMode = currentPatch.master.vMode;
+        
+        out.innerHTML = `<div class="section-header"><p class="section-title">Master & Voice</p></div>` + currentPatch.master.html;
+        out.innerHTML += `<div class="section-header"><p class="section-title">Oscillator</p></div>` + currentPatch.osc;
+        out.innerHTML += `<div class="section-header"><p class="section-title">Amp & Filter Env</p></div>` + currentPatch.env;
+        out.innerHTML += `<div class="section-header"><p class="section-title">Cycling Envelope</p></div>` + currentPatch.cyc;
+        out.innerHTML += `<div class="section-header"><p class="section-title">LFO</p></div>` + currentPatch.lfo;
+
+        let matrixHtml = `<div class="section-header"><p class="section-title">Modulation Matrix</p></div>`;
+        for(let i=1; i<=3; i++) {
+            let slot = "Assign " + i;
+            if(m.usedAssigns.has(slot)) matrixHtml += `<div class="instruction-box"><strong>${slot}:</strong> <em>${m.config[i-1]}</em></div>`;
+            else matrixHtml += `<div class="instruction-box blank-box"><strong>${slot}:</strong> INT - Blank</div>`;
+        }
+        
+        m.connections.forEach(c => {
+            // Logic: Filter out Unispread if not in Unison mode
+            if (c.targetParam === "Unispread" && vMode !== "Unison") {
+                matrixHtml += `<div class="param-row" style="opacity:0.3"><span>${c.s} → ${c.d}</span><span>(Inactive: No Unison)</span></div>`;
+            } else {
+                matrixHtml += row(`${c.s} → ${c.d}`, `Amt: ${c.a > 0 ? '+'+c.a : c.a}`);
+            }
+        });
+        out.innerHTML += matrixHtml;
+    }
+
+    function row(label, value) {
+        return `<div class="param-row"><span class="param-name">${label}</span><span class="param-val">${value}</span></div>`;
+    }
+</script>
+</body>
+</html>
+    

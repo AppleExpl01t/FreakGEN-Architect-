@@ -1,0 +1,31 @@
+{
+  "name": "microfreak-architect",
+  "version": "2.6.0",
+  "description": "Premium patch generator for Arturia MicroFreak",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder -w"
+  },
+  "build": {
+    "appId": "com.microfreak.architect",
+    "productName": "MicroFreak Architect",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "allowToChangeInstallationDirectory": true,
+      "oneClick": false
+    }
+  },
+  "keywords": [],
+  "author": "Antigravity",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

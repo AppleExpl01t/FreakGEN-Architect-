@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroFreak Architect</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app-background"></div>
+    <div class="app-container">
+        <!-- Sidebar / Control Panel -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <div class="logo">FREAK<span class="highlight">GEN</span></div>
+                <div class="subtitle">ARCHITECT V2.7</div>
+            </header>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="sel-style">Design Style</label>
+                    <div class="select-wrapper">
+                        <select id="sel-style">
+                            <option value="random">Random Style</option>
+                            <option value="none">Chaos (None)</option>
+                            <option value="bass">Bass</option>
+                            <option value="brass">Brass</option>
+                            <option value="keys">Keys</option>
+                            <option value="lead">Lead</option>
+                            <option value="organ">Organ</option>
+                            <option value="pad">Pad</option>
+                            <option value="percussion">Percussion</option>
+                            <option value="sequence">Sequence / Arp</option>
+                            <option value="sfx">SFX</option>
+                            <option value="strings">Strings</option>
+                            <option value="vocoder">Vocoder</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="sel-intensity">Complexity</label>
+                    <div class="select-wrapper">
+                        <select id="sel-intensity">
+                            <option value="simple">Simple</option>
+                            <option value="moderate" selected>Moderate</option>
+                            <option value="high">High</option>
+                            <option value="extreme">Extreme</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-area">
+                    <div id="style-reveal" class="status-text">Ready to Build</div>
+                    <button id="btn-generate" class="btn-primary">
+                        <span>GENERATE PATCH</span>
+                        <div class="btn-shine"></div>
+                    </button>
+                </div>
+            </div>
+
+            <footer class="sidebar-footer">
+                <p>Designed for Arturia MicroFreak</p>
+                <div class="credits">
+                    <div class="credit-row">
+                        <span class="role-label">Lead</span>
+                        <a href="#" class="credit-link"
+                            onclick="require('electron').shell.openExternal('https://discord.gg/ZHX7KRVBMB')">Comet620</a>
+                    </div>
+                    <div class="credit-row">
+                        <span class="role-label">Dev</span>
+                        <a href="#" class="credit-link"
+                            onclick="require('electron').shell.openExternal('https://github.com/AppleExpl01t')">AppleExpl01t</a>
+                    </div>
+                </div>
+            </footer>
+        </aside>
+
+        <!-- Main Content / Results -->
+        <main class="content-area">
+            <div id="output-grid" class="output-grid hidden">
+                <!-- Content will be injected here by JS -->
+            </div>
+            <div id="placeholder-message" class="placeholder-message">
+                <h2>Initialize Generation</h2>
+                <p>Select a style and intensity to architect a new sound.</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
