@@ -200,31 +200,39 @@
 
             <!-- Gallery View -->
             <div id="view-gallery">
+                <div id="gallery-stats" class="gallery-stats"></div>
                 <div class="gallery-toolbar">
                     <input type="text" id="gallery-search" placeholder="Search presets..."
-                        data-tooltip="Search by Name or Description">
-                    <select id="filter-style" data-tooltip="Filter by Design Style">
+                        data-tooltip="Search by Name or Description" aria-label="Search presets">
+                    <select id="filter-style" data-tooltip="Filter by Design Style" aria-label="Filter by style">
                         <option value="all">All Styles</option>
                         <!-- Populated JS -->
                     </select>
-                    <select id="filter-engine" data-tooltip="Filter by Oscillator Engine">
+                    <select id="filter-engine" data-tooltip="Filter by Oscillator Engine" aria-label="Filter by engine">
                         <option value="all">All Engines</option>
                     </select>
-                    <select id="filter-complexity" data-tooltip="Filter by Modulation Complexity">
+                    <select id="filter-complexity" data-tooltip="Filter by Modulation Complexity"
+                        aria-label="Filter by complexity">
                         <option value="all">All Complexity</option>
                         <option value="simple">Simple</option>
                         <option value="moderate">Moderate</option>
                         <option value="high">High</option>
                         <option value="extreme">Extreme</option>
                     </select>
-                    <button id="btn-sort-date" class="icon-btn" data-tooltip="Toggle Sort: Name / Date">📅</button>
-                    <button id="btn-backup" class="icon-btn"
-                        data-tooltip="Export Backup: Save all presets as ZIP">📦</button>
+                    <button id="btn-filter-fav" class="icon-btn" data-tooltip="Show Favorites Only"
+                        aria-label="Filter favorites">⭐</button>
+                    <button id="btn-sort-date" class="icon-btn" data-tooltip="Toggle Sort: Name / Date"
+                        aria-label="Toggle sort order">📅</button>
+                    <button id="btn-import" class="icon-btn" data-tooltip="Import Backup: Restore presets from ZIP"
+                        aria-label="Import backup">📥</button>
+                    <button id="btn-backup" class="icon-btn" data-tooltip="Export Backup: Save all presets as ZIP"
+                        aria-label="Export backup">📦</button>
                 </div>
                 <div id="gallery-grid" class="gallery-grid">
                     <!-- Populated -->
                 </div>
-                <button id="btn-back-gen" class="btn-secondary" style="margin-top:20px; width:auto;">&larr; Back to
+                <button id="btn-back-gen" class="btn-secondary" style="margin-top:20px; width:auto;"
+                    aria-label="Back to generator">&larr; Back to
                     Generator</button>
             </div>
         </main>

@@ -34,6 +34,15 @@ ipcMain.handle('save-dialog', async (event, options) => {
     return result.filePath;
 });
 
+ipcMain.handle('select-file', async (event, options) => {
+    const result = await dialog.showOpenDialog({
+        title: options.title || 'Select File',
+        filters: options.filters || [],
+        properties: ['openFile']
+    });
+    return result.filePaths[0];
+});
+
 app.whenReady().then(() => {
     createWindow();
 

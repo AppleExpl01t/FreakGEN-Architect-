@@ -36,13 +36,12 @@ const fixedDests = ["Pitch", "Wave", "Timbre", "Cutoff"];
 const assignTargets = ["LFO Rate", "Reso", "Env Dec", "Env Sus", "Cyc Rise", "Cyc Fall", "Cyc Hold", "Cyc Amt", "Glide", "Osc Shape", "Spread", "Unispread", "Arp Rate"];
 
 // State
-// State
 let currentPatch = { master: [], osc: [], env: [], cyc: [], lfo: [], matrixData: null, style: "init", intensity: "simple", engine: "unknown" };
 let locks = { master: false, osc: false, env: false, cyc: false, lfo: false, matrix: false };
 let savedPresets = [];
 let patchHistory = [];
 let patchFuture = [];
-let historyDepth = 3;
+let historyDepth = parseInt(localStorage.getItem('freakgen_history_depth')) || 3;
 let libraryPath = localStorage.getItem('freakgen_lib_path');
 // Since "app" is main process, we use os.homedir for renderer
 if (!libraryPath) {
@@ -98,14 +97,20 @@ const filterEngine = document.getElementById('filter-engine');
 const filterComplexity = document.getElementById('filter-complexity');
 const btnSortDate = document.getElementById('btn-sort-date');
 const btnBackup = document.getElementById('btn-backup');
+const btnImport = document.getElementById('btn-import');
+const btnFilterFav = document.getElementById('btn-filter-fav');
+const galleryStats = document.getElementById('gallery-stats');
 
 // Settings Paths
 const libPathDisplay = document.getElementById('lib-path-display');
 const btnChangePath = document.getElementById('btn-change-path');
 
+// Gallery State
+let showFavoritesOnly = false;
+
 let tooltipTimeout;
-let tooltipsEnabled = true;
-document.body.classList.add('tooltips-enabled');
+let tooltipsEnabled = localStorage.getItem('freakgen_tooltips') !== 'false';
+if (tooltipsEnabled) document.body.classList.add('tooltips-enabled');
 
 // Initialize
 oscTypes.forEach(t => {
@@ -136,6 +141,8 @@ filterEngine.addEventListener('change', renderGallery);
 filterComplexity.addEventListener('change', renderGallery);
 btnSortDate.addEventListener('click', toggleSort);
 btnBackup.addEventListener('click', backupGallery);
+btnImport.addEventListener('click', importBackup);
+btnFilterFav.addEventListener('click', toggleFavFilter);
 
 // Path Listener
 btnChangePath.addEventListener('click', async () => {
@@ -156,6 +163,7 @@ settingsModal.addEventListener('click', (e) => {
 
 // Settings Logic
 const inpHistoryDepth = document.getElementById('history-depth');
+inpHistoryDepth.value = historyDepth;
 inpHistoryDepth.addEventListener('change', (e) => {
     let val = parseInt(e.target.value);
     if (isNaN(val)) val = 3;
@@ -164,6 +172,7 @@ inpHistoryDepth.addEventListener('change', (e) => {
 
     e.target.value = val;
     historyDepth = val;
+    localStorage.setItem('freakgen_history_depth', val);
 
     // Trim existing if needed
     if (patchHistory.length > historyDepth) {
@@ -171,8 +180,10 @@ inpHistoryDepth.addEventListener('change', (e) => {
     }
     updateHistoryButtons();
 });
+toggleTooltips.checked = tooltipsEnabled;
 toggleTooltips.addEventListener('change', (e) => {
     tooltipsEnabled = e.target.checked;
+    localStorage.setItem('freakgen_tooltips', tooltipsEnabled);
     if (tooltipsEnabled) {
         document.body.classList.add('tooltips-enabled');
     } else {
@@ -233,7 +244,6 @@ function generatePatch() {
     // Ensure we are viewing the generator (triggers transition if in gallery)
     showGenerator();
 
-    // History Logic
     // History Logic
     if (currentPatch.matrixData) {
         // Clone and push
@@ -739,6 +749,7 @@ function initLibrary() {
 
 function loadPresets() {
     savedPresets = [];
+    let corruptedCount = 0;
     const files = fs.readdirSync(libraryPath);
     files.forEach(f => {
         if (f.endsWith('.json')) {
@@ -748,13 +759,20 @@ function loadPresets() {
                     filename: f,
                     ...data,
                     // Ensure date is valid object or string
-                    date: data.date ? new Date(data.date) : new Date(0)
+                    date: data.date ? new Date(data.date) : new Date(0),
+                    // Default favorite to false if not present
+                    favorite: data.favorite || false
                 });
             } catch (e) {
-                console.error("Failed to load preset", f);
+                console.error("Failed to load preset", f, e.message);
+                corruptedCount++;
             }
         }
     });
+
+    if (corruptedCount > 0) {
+        console.warn(`Skipped ${corruptedCount} corrupted preset file(s).`);
+    }
 }
 
 function populateFilters() {
@@ -803,10 +821,12 @@ function performSave() {
     saveModal.classList.add('hidden');
     loadPresets();
 
-    // Feedback? Button text flash?
-    const oldText = btnSave.innerText;
-    btnSave.innerText = "SAVED!";
-    setTimeout(() => btnSave.innerText = oldText, 2000);
+    // Feedback
+    const saveSpan = btnSave.querySelector('span');
+    if (saveSpan) {
+        saveSpan.innerText = "SAVED!";
+        setTimeout(() => saveSpan.innerText = "SAVE", 2000);
+    }
 }
 
 const contentArea = document.querySelector('.content-area');
@@ -837,6 +857,22 @@ function renderGallery() {
     const fEngine = filterEngine.value;
     const fComplex = filterComplexity.value;
 
+    // Calculate stats before filtering
+    const totalPresets = savedPresets.length;
+    const styleCounts = {};
+    const favCount = savedPresets.filter(p => p.favorite).length;
+    savedPresets.forEach(p => {
+        styleCounts[p.style] = (styleCounts[p.style] || 0) + 1;
+    });
+
+    // Render Stats Bar
+    let statsHtml = `<span class="stat">Total: <span class="stat-value">${totalPresets}</span></span>`;
+    statsHtml += `<span class="stat">⭐ Favorites: <span class="stat-value">${favCount}</span></span>`;
+    Object.keys(styleCounts).sort().slice(0, 5).forEach(style => {
+        statsHtml += `<span class="stat">${style}: <span class="stat-value">${styleCounts[style]}</span></span>`;
+    });
+    galleryStats.innerHTML = statsHtml;
+
     let filtered = savedPresets.filter(p => {
         // Search
         const matchText = (p.name.toLowerCase().includes(search) || (p.description || "").toLowerCase().includes(search));
@@ -846,33 +882,18 @@ function renderGallery() {
         const matchEngine = fEngine === 'all' || (p.engine === fEngine);
         // Complexity
         const matchComplex = fComplex === 'all' || p.intensity === fComplex;
+        // Favorites
+        const matchFav = !showFavoritesOnly || p.favorite;
 
-        return matchText && matchStyle && matchEngine && matchComplex;
+        return matchText && matchStyle && matchEngine && matchComplex && matchFav;
     });
 
-    // Grouping by Complexity
-    // Sort
-    if (gallerySort === 'name') {
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-    } else {
-        filtered.sort((a, b) => b.date - a.date); // Newest first
-    }
-
-    // If user wants Grouping by A-Z (Complexity), we process that visually.
-    // The request said: "organize... in groups based on their complexity in ABC order".
-    // So we should group primarily by complexity, then sort inside.
-
-    // Sort logic override for grouping
-    // Group order: Simple -> Moderate -> High -> Extreme
+    // Sort logic
     const complexityOrder = { 'simple': 0, 'moderate': 1, 'high': 2, 'extreme': 3 };
-
-    // We sort primary comp, secondary selected sort
     filtered.sort((a, b) => {
         const cA = complexityOrder[a.intensity] || 99;
         const cB = complexityOrder[b.intensity] || 99;
-
         if (cA !== cB) return cA - cB;
-
         return gallerySort === 'name' ? a.name.localeCompare(b.name) : b.date - a.date;
     });
 
@@ -884,7 +905,7 @@ function renderGallery() {
             currentGroup = p.intensity;
             const h = document.createElement('div');
             h.className = 'group-header';
-            h.innerText = `${p.intensity.toUpperCase()} COMPLEXITY`;
+            h.innerText = `${(p.intensity || 'unknown').toUpperCase()} COMPLEXITY`;
             galleryGrid.appendChild(h);
         }
 
@@ -894,23 +915,45 @@ function renderGallery() {
         card.setAttribute('data-tooltip', `Click to load "${p.name}".\n${p.description ? p.description.substring(0, 50) + (p.description.length > 50 ? '...' : '') : ''}`);
 
         const eng = p.engine || 'Unknown';
+        const dateStr = p.date instanceof Date ? p.date.toLocaleDateString() : 'Unknown';
 
         card.innerHTML = `
+            <div class="card-actions">
+                <button class="btn-fav" data-tooltip="${p.favorite ? 'Remove from Favorites' : 'Add to Favorites'}" aria-label="Toggle favorite">${p.favorite ? '⭐' : '☆'}</button>
+                <button class="btn-delete" data-tooltip="Delete Preset" aria-label="Delete preset">🗑️</button>
+            </div>
             <h4>${p.name}</h4>
             <div class="meta">
                 <span class="tag" data-tooltip="Design Style: ${p.style}">${p.style}</span>
                 <span class="tag" style="color:var(--accent)" data-tooltip="Oscillator Engine: ${eng}">${eng}</span>
             </div>
             <div class="desc" style="font-size:11px; margin-top:8px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.description || "No description"}</div>
+            <div class="creation-date">Created: ${dateStr}</div>
         `;
 
-        card.onclick = () => loadPresetToGen(p);
+        // Event: Load preset (exclude action buttons)
+        card.onclick = (e) => {
+            if (e.target.closest('.card-actions')) return;
+            loadPresetToGen(p);
+        };
+
+        // Event: Favorite toggle
+        card.querySelector('.btn-fav').onclick = (e) => {
+            e.stopPropagation();
+            toggleFavorite(p.filename);
+        };
+
+        // Event: Delete
+        card.querySelector('.btn-delete').onclick = (e) => {
+            e.stopPropagation();
+            deletePreset(p.filename, p.name);
+        };
 
         galleryGrid.appendChild(card);
     });
 
     if (filtered.length === 0) {
-        galleryGrid.innerHTML = '<div style="color:#666; font-style:italic;">No presets found matching content.</div>';
+        galleryGrid.innerHTML = '<div style="color:#666; font-style:italic;">No presets found matching filters.</div>';
     }
 }
 
@@ -961,7 +1004,7 @@ function restoreHistory() {
     renderCardsFromCurrent();
 
     // Update Status
-    statusText.innerText = `Restored: ${currentPatch.realStyle.toUpperCase()} (Undo)`;
+    statusText.innerText = `Restored: ${(currentPatch.realStyle || 'Patch').toUpperCase()} (Undo)`;
 
     updateHistoryButtons();
 }
@@ -978,7 +1021,7 @@ function goForward() {
     currentPatch = next;
 
     renderCardsFromCurrent();
-    statusText.innerText = `Restored: ${currentPatch.realStyle.toUpperCase()} (Redo)`;
+    statusText.innerText = `Restored: ${(currentPatch.realStyle || 'Patch').toUpperCase()} (Redo)`;
 
     updateHistoryButtons();
 }
@@ -999,7 +1042,7 @@ async function backupGallery() {
         return;
     }
 
-    const oldText = btnBackup.innerText;
+    // Save old state for restoration
     btnBackup.innerText = "⏳";
     btnBackup.disabled = true;
 
@@ -1045,5 +1088,92 @@ async function backupGallery() {
         alert("Backup failed: " + err.message);
         btnBackup.innerText = "❌";
         btnBackup.disabled = false;
+    }
+}
+
+function toggleFavorite(filename) {
+    const filePath = path.join(libraryPath, filename);
+    try {
+        const data = JSON.parse(fs.readFileSync(filePath));
+        data.favorite = !data.favorite;
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+        loadPresets();
+        renderGallery();
+    } catch (e) {
+        console.error("Failed to toggle favorite:", e);
+    }
+}
+
+function deletePreset(filename, name) {
+    if (!confirm(`Delete preset "${name}"? This cannot be undone.`)) return;
+
+    const filePath = path.join(libraryPath, filename);
+    try {
+        fs.unlinkSync(filePath);
+        loadPresets();
+        renderGallery();
+    } catch (e) {
+        console.error("Failed to delete preset:", e);
+        alert("Failed to delete preset: " + e.message);
+    }
+}
+
+function toggleFavFilter() {
+    showFavoritesOnly = !showFavoritesOnly;
+    btnFilterFav.classList.toggle('active', showFavoritesOnly);
+    renderGallery();
+}
+
+async function importBackup() {
+    btnImport.innerText = "⏳";
+    btnImport.disabled = true;
+
+    try {
+        const result = await ipcRenderer.invoke('select-file', {
+            title: 'Import Backup',
+            filters: [{ name: 'Zip Files', extensions: ['zip'] }]
+        });
+
+        if (!result) {
+            btnImport.innerText = "📥";
+            btnImport.disabled = false;
+            return;
+        }
+
+        const zipData = fs.readFileSync(result);
+        const zip = await JSZip.loadAsync(zipData);
+
+        let importedCount = 0;
+        const files = Object.keys(zip.files);
+
+        for (const filename of files) {
+            if (!filename.endsWith('.json')) continue;
+
+            const content = await zip.files[filename].async('string');
+            const targetPath = path.join(libraryPath, filename);
+
+            // Skip if file already exists (don't overwrite)
+            if (!fs.existsSync(targetPath)) {
+                fs.writeFileSync(targetPath, content);
+                importedCount++;
+            }
+        }
+
+        loadPresets();
+        renderGallery();
+
+        btnImport.innerText = "✅";
+        setTimeout(() => {
+            btnImport.innerText = "📥";
+            btnImport.disabled = false;
+        }, 2000);
+
+        alert(`Imported ${importedCount} new preset(s).`);
+
+    } catch (err) {
+        console.error(err);
+        alert("Import failed: " + err.message);
+        btnImport.innerText = "❌";
+        btnImport.disabled = false;
     }
 }
