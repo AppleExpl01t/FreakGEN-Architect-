@@ -264,13 +264,25 @@ function generateCyc(active) {
     let susLabel = (mode === "Env") ? "Sustain" : "Hold"; // Dynamic label
     let susVal = (mode === "Env") ? rVal(0, 100) + "%" : getTime(0, 5000); // Expanded Hold time slightly
 
-    return [
+    const result = [
         { label: "Mode", val: mode, tooltip: "Press the Mode button in the Cycling Envelope section." },
-        { label: "Rise", val: getTime(10, 1000), tooltip: "Turn the Rise knob in the Cycling Envelope section." },
-        { label: "Fall", val: getTime(10, 1000), tooltip: "Turn the Fall knob in the Cycling Envelope section." },
-        { label: susLabel, val: susVal, tooltip: "Turn the Hold/Sustain knob in the Cycling Envelope section." },
-        { label: "Amount", val: rVal(0, 100) + "%", tooltip: "Turn the Amount knob in the Cycling Envelope section." }
+        { label: "Rise", val: getTime(10, 1000), tooltip: "Turn the Rise knob in the Cycling Envelope section." }
     ];
+
+    if (selIntensity.value !== "simple") {
+        result.push({ label: "Rise Shape", val: rVal(1, 100) + "%", tooltip: "Hold Shift and turn the Rise knob." });
+    }
+
+    result.push({ label: "Fall", val: getTime(10, 1000), tooltip: "Turn the Fall knob in the Cycling Envelope section." });
+
+    if (selIntensity.value !== "simple") {
+        result.push({ label: "Fall Shape", val: rVal(1, 100) + "%", tooltip: "Hold Shift and turn the Fall knob." });
+    }
+
+    result.push({ label: susLabel, val: susVal, tooltip: "Turn the Hold/Sustain knob in the Cycling Envelope section." });
+    result.push({ label: "Amount", val: rVal(0, 100) + "%", tooltip: "Turn the Amount knob in the Cycling Envelope section." });
+
+    return result;
 }
 
 function generateLFO(active) {
@@ -353,6 +365,96 @@ function generateMatrixData(style, intensity) {
 
         connections.push({ s, d, a: val, targetParam });
     }
+
+    // --- Post-Processing Constraint Check (User Request) ---
+    // Rule: "If CycEnv is not controlling a parameter (e.g. Pitch/Wave)... do not assign in custom assign."
+    // Definition of Active CycEnv: Modulates a Fixed Dest OR Modulates an Assign slot that is NOT a Cyc Parameter.
+
+    const cycParams = ["Cyc Rise", "Cyc Fall", "Cyc Hold", "Cyc Amt"];
+
+    // Check if CycEnv is effectively active
+    // We look at all connections where Source is CycEnv.
+    // If the Destination is in fixedDests -> Good.
+    // If Destination is Assign X, check if that Assign maps to a non-Cyc param -> Good.
+
+    let cycIsEffective = false;
+    for (let c of connections) {
+        if (c.s === "CycEnv") {
+            if (fixedDests.includes(c.d)) {
+                cycIsEffective = true;
+                break;
+            }
+            if (c.d.includes("Assign")) {
+                // Check what this assign controls
+                // c.targetParam is already resolved
+                if (!cycParams.includes(c.targetParam)) {
+                    cycIsEffective = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!cycIsEffective) {
+        // 1. Remove CycEnv from usedSources
+        usedSources.delete("CycEnv");
+
+        // 2. Remove connections sourced from CycEnv
+        connections = connections.filter(c => c.s !== "CycEnv");
+
+        // 3. Replace Cyc Params in Config (Assign 1-3)
+        // We need to replace items in `config` that are in `cycParams`
+        // `targets` currently holds the remaining pool of assignTargets.
+
+        for (let i = 0; i < 3; i++) {
+            if (cycParams.includes(config[i])) {
+                // Find a replacement from `targets` that is NOT a Cyc param
+                // Filter available targets
+                let validReplacements = targets.filter(t => !cycParams.includes(t));
+
+                if (validReplacements.length > 0) {
+                    // Pick one
+                    let idx = rInt(validReplacements.length);
+                    let rep = validReplacements[idx];
+
+                    // Update Config
+                    config[i] = rep;
+
+                    // Remove from targets (so we don't pick it again for another slot)
+                    // We need to find it in the original `targets` array to splice it out properly
+                    let realIdx = targets.indexOf(rep);
+                    if (realIdx > -1) targets.splice(realIdx, 1);
+
+                    // Update connections that pointed to this Assign slot?
+                    // Their `targetParam` is now wrong. Update it.
+                    let assignName = `Assign ${i + 1}`;
+                    connections.forEach(c => {
+                        if (c.d === assignName) {
+                            c.targetParam = rep;
+                            // Re-check unispread logic if we swapped into Unispread?
+                            if (rep === "Unispread") c.a = Math.abs(c.a);
+                        }
+                    });
+                } else {
+                    // Fallback: Just clear it or leave it? ideally shouldn't happen given the pool size.
+                    // If no non-cyc targets left, we are stuck. But mod matrix pool is large enough.
+                }
+            }
+        }
+    }
+
+    // --- Post-Processing Constraint Check (User Request 2) ---
+    // Rule: "If a custom assign is generated it needs to be used in the mod matrix if not leave 'INT - Blank'"
+    for (let i = 0; i < 3; i++) {
+        const assignName = `Assign ${i + 1}`;
+        // Check if any connection targets this assign slot
+        const isUsed = connections.some(c => c.d === assignName);
+
+        if (!isUsed) {
+            config[i] = "INT - Blank";
+        }
+    }
+
     return { usedSources, usedAssigns, connections, config };
 }
 
