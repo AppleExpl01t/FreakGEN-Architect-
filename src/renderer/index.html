@@ -80,14 +80,25 @@
 
                 <div class="action-area">
                     <div id="style-reveal" class="status-text">Ready to Build</div>
-                    <div class="button-row">
+                    <div class="button-row" style="margin-bottom:10px;">
                         <button id="btn-generate" class="btn-primary"
                             data-tooltip="Generate a new complete patch based on current settings. Locks are respected.">
                             <span>GENERATE</span>
                             <div class="btn-shine"></div>
                         </button>
-                        <button id="btn-save" class="btn-secondary" data-tooltip="Save current patch to library.">
+                    </div>
+                    <div class="button-row">
+                        <button id="btn-undo" class="btn-secondary" style="flex: 0.4; padding: 16px 10px;"
+                            data-tooltip="Undo: Load previous patch (Max 3 stored)" disabled>
+                            ↩️
+                        </button>
+                        <button id="btn-save" class="btn-secondary" style="flex: 1;"
+                            data-tooltip="Save current patch to library.">
                             <span>SAVE</span>
+                        </button>
+                        <button id="btn-redo" class="btn-secondary" style="flex: 0.4; padding: 16px 10px;"
+                            data-tooltip="Redo: Go forward to next patch" disabled>
+                            ↪️
                         </button>
                     </div>
                     <button id="btn-gallery" class="btn-secondary"
@@ -114,6 +125,13 @@
                     <div class="setting-item">
                         <label for="toggle-tooltips">Show Tooltips</label>
                         <input type="checkbox" id="toggle-tooltips" checked>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="history-depth" data-tooltip="Number of previous patches to remember (1-20)">Undo
+                            History Depth</label>
+                        <input type="number" id="history-depth" value="3" min="1" max="20"
+                            style="width: 60px; text-align: center;">
                     </div>
 
                     <div class="setting-item">
@@ -182,15 +200,16 @@
             <!-- Gallery View -->
             <div id="view-gallery">
                 <div class="gallery-toolbar">
-                    <input type="text" id="gallery-search" placeholder="Search presets...">
-                    <select id="filter-style">
+                    <input type="text" id="gallery-search" placeholder="Search presets..."
+                        data-tooltip="Search by Name or Description">
+                    <select id="filter-style" data-tooltip="Filter by Design Style">
                         <option value="all">All Styles</option>
                         <!-- Populated JS -->
                     </select>
-                    <select id="filter-engine">
+                    <select id="filter-engine" data-tooltip="Filter by Oscillator Engine">
                         <option value="all">All Engines</option>
                     </select>
-                    <select id="filter-complexity">
+                    <select id="filter-complexity" data-tooltip="Filter by Modulation Complexity">
                         <option value="all">All Complexity</option>
                         <option value="simple">Simple</option>
                         <option value="moderate">Moderate</option>

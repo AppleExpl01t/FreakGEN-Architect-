@@ -40,6 +40,9 @@ const assignTargets = ["LFO Rate", "Reso", "Env Dec", "Env Sus", "Cyc Rise", "Cy
 let currentPatch = { master: [], osc: [], env: [], cyc: [], lfo: [], matrixData: null, style: "init", intensity: "simple", engine: "unknown" };
 let locks = { master: false, osc: false, env: false, cyc: false, lfo: false, matrix: false };
 let savedPresets = [];
+let patchHistory = [];
+let patchFuture = [];
+let historyDepth = 3;
 let libraryPath = localStorage.getItem('freakgen_lib_path');
 // Since "app" is main process, we use os.homedir for renderer
 if (!libraryPath) {
@@ -57,6 +60,8 @@ const getTime = (minMs, maxMs) => {
 
 // UI Elements
 const btnGenerate = document.getElementById('btn-generate');
+const btnUndo = document.getElementById('btn-undo');
+const btnRedo = document.getElementById('btn-redo');
 const selStyle = document.getElementById('sel-style');
 const selIntensity = document.getElementById('sel-intensity');
 const selEngine = document.getElementById('sel-engine');
@@ -113,6 +118,9 @@ oscTypes.forEach(t => {
 initLibrary();
 
 btnGenerate.addEventListener('click', generatePatch);
+btnGenerate.addEventListener('click', generatePatch);
+btnUndo.addEventListener('click', restoreHistory);
+btnRedo.addEventListener('click', goForward);
 btnSave.addEventListener('click', openSaveWindow);
 btnGallery.addEventListener('click', showGallery);
 btnBackGen.addEventListener('click', showGenerator);
@@ -146,6 +154,22 @@ settingsModal.addEventListener('click', (e) => {
 });
 
 // Settings Logic
+const inpHistoryDepth = document.getElementById('history-depth');
+inpHistoryDepth.addEventListener('change', (e) => {
+    let val = parseInt(e.target.value);
+    if (isNaN(val)) val = 3;
+    if (val < 1) val = 1;
+    if (val > 20) val = 20;
+
+    e.target.value = val;
+    historyDepth = val;
+
+    // Trim existing if needed
+    if (patchHistory.length > historyDepth) {
+        patchHistory = patchHistory.slice(patchHistory.length - historyDepth);
+    }
+    updateHistoryButtons();
+});
 toggleTooltips.addEventListener('change', (e) => {
     tooltipsEnabled = e.target.checked;
     if (tooltipsEnabled) {
@@ -207,6 +231,19 @@ document.addEventListener('mouseout', (e) => {
 function generatePatch() {
     // Ensure we are viewing the generator (triggers transition if in gallery)
     showGenerator();
+
+    // History Logic
+    // History Logic
+    if (currentPatch.matrixData) {
+        // Clone and push
+        patchHistory.push(JSON.parse(JSON.stringify(currentPatch)));
+        if (patchHistory.length > historyDepth) patchHistory.shift();
+
+        // Clear future on new generation
+        patchFuture = [];
+
+        updateHistoryButtons();
+    }
 
     let style = selStyle.value;
     const intensity = selIntensity.value;
@@ -393,6 +430,14 @@ function generateMatrixData(style, intensity) {
     let connections = [];
     let config = [];
     let targets = [...assignTargets];
+
+    // Determine Voice Mode to filter incompatible targets
+    const vModeObj = currentPatch.master ? currentPatch.master.find(x => x.label === "Voice Mode") : null;
+    const isUnison = vModeObj && vModeObj.val === "Unison";
+
+    if (!isUnison) {
+        targets = targets.filter(t => t !== "Spread" && t !== "Unispread");
+    }
 
     // Constraint Logic: 
     // If we pick Cycling Env parameters for Assign slots, we must ensure CycEnv is actually doing something.
@@ -793,7 +838,7 @@ function renderGallery() {
 
     let filtered = savedPresets.filter(p => {
         // Search
-        const matchText = (p.name + p.description).toLowerCase().includes(search);
+        const matchText = (p.name.toLowerCase().includes(search) || (p.description || "").toLowerCase().includes(search));
         // Style
         const matchStyle = fStyle === 'all' || p.style === fStyle;
         // Engine
@@ -845,14 +890,15 @@ function renderGallery() {
         const card = document.createElement('div');
         card.className = 'preset-card';
         card.setAttribute('data-id', p.filename);
+        card.setAttribute('data-tooltip', `Click to load "${p.name}".\n${p.description ? p.description.substring(0, 50) + (p.description.length > 50 ? '...' : '') : ''}`);
 
         const eng = p.engine || 'Unknown';
 
         card.innerHTML = `
             <h4>${p.name}</h4>
             <div class="meta">
-                <span class="tag">${p.style}</span>
-                <span class="tag" style="color:var(--accent)">${eng}</span>
+                <span class="tag" data-tooltip="Design Style: ${p.style}">${p.style}</span>
+                <span class="tag" style="color:var(--accent)" data-tooltip="Oscillator Engine: ${eng}">${eng}</span>
             </div>
             <div class="desc" style="font-size:11px; margin-top:8px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.description || "No description"}</div>
         `;
@@ -870,6 +916,8 @@ function renderGallery() {
 function loadPresetToGen(presetData) {
     // Switch view
     showGenerator();
+    hideTooltip(); // Force hide tooltip
+    if (tooltipTimeout) clearTimeout(tooltipTimeout);
 
     // Load Data
     currentPatch = presetData.patch;
@@ -896,4 +944,50 @@ function renderCardsFromCurrent() {
     outputGrid.appendChild(createCard("Cycling Envelope", currentPatch.cyc, "cyc"));
     outputGrid.appendChild(createCard("LFO", currentPatch.lfo, "lfo"));
     outputGrid.appendChild(createMatrixCard(currentPatch.matrixData, currentPatch.master, "matrix"));
+}
+
+function restoreHistory() {
+    if (patchHistory.length === 0) return;
+
+    // Push current to future before undoing
+    patchFuture.push(JSON.parse(JSON.stringify(currentPatch)));
+
+    // Pop the last state from history
+    const prev = patchHistory.pop();
+    currentPatch = prev;
+
+    // Re-render
+    renderCardsFromCurrent();
+
+    // Update Status
+    statusText.innerText = `Restored: ${currentPatch.realStyle.toUpperCase()} (Undo)`;
+
+    updateHistoryButtons();
+}
+
+function goForward() {
+    if (patchFuture.length === 0) return;
+
+    // Push current to history before redoing
+    patchHistory.push(JSON.parse(JSON.stringify(currentPatch)));
+    if (patchHistory.length > historyDepth) patchHistory.shift(); // Keep history cap
+
+    // Pop from future
+    const next = patchFuture.pop();
+    currentPatch = next;
+
+    renderCardsFromCurrent();
+    statusText.innerText = `Restored: ${currentPatch.realStyle.toUpperCase()} (Redo)`;
+
+    updateHistoryButtons();
+}
+
+function updateHistoryButtons() {
+    btnUndo.disabled = patchHistory.length === 0;
+    btnUndo.style.opacity = patchHistory.length === 0 ? "0.5" : "1";
+    btnUndo.setAttribute("data-tooltip", `Undo (${patchHistory.length})`);
+
+    btnRedo.disabled = patchFuture.length === 0;
+    btnRedo.style.opacity = patchFuture.length === 0 ? "0.5" : "1";
+    btnRedo.setAttribute("data-tooltip", `Redo (${patchFuture.length})`);
 }
