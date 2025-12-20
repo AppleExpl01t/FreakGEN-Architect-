@@ -404,6 +404,137 @@ option {
     font-size: 13px;
 }
 
+/* Header Layout */
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.settings-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.settings-btn:hover {
+    color: var(--accent);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Modal Styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 300px;
+    padding: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    transform: scale(1);
+    transition: transform 0.2s;
+}
+
+.modal-overlay.hidden .modal-content {
+    transform: scale(0.95);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+}
+
+.modal-header h3 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    color: white;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.credits h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    text-align: center;
+    opacity: 0.7;
+}
+
+/* Tooltip Styling */
+.tooltip {
+    position: absolute;
+    background: rgba(20, 20, 24, 0.95);
+    border: 1px solid var(--accent);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 2000;
+    max-width: 200px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.2s, transform 0.2s;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tooltip.hidden {
+    opacity: 0;
+    transform: translateY(5px);
+}
+
 /* Responsive adjustments */
 @media (max-width: 800px) {
     .app-container {
@@ -419,4 +550,30 @@ option {
     .content-area {
         padding: 20px;
     }
+}
+
+/* Tooltip Highlight Logic */
+body.tooltips-enabled [data-tooltip]:hover {
+    outline: 1px solid var(--accent);
+    cursor: help;
+    background: rgba(255, 140, 0, 0.05);
+    position: relative;
+    /* Ensure outline doesn't look weird */
+    z-index: 5;
+}
+
+/* Specific overrides for cleaner look on certain elements */
+body.tooltips-enabled .control-group[data-tooltip]:hover {
+    background: transparent;
+}
+
+/* Ensure Matrix Items stand out and override default hover opacity if any */
+body.tooltips-enabled .matrix-item[data-tooltip]:hover {
+    background: rgba(255, 140, 0, 0.1);
+    outline: 1px solid var(--accent);
+}
+
+/* Fix for buttons that already have hover effects */
+body.tooltips-enabled button[data-tooltip]:hover {
+    outline-offset: 2px;
 }

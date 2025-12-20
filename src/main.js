@@ -6,6 +6,7 @@ function createWindow() {
         width: 1000,
         height: 800,
         backgroundColor: '#0f0f11',
+        icon: path.join(__dirname, '../assets/icon.png'),
         show: false, // Wait until ready-to-show to prevent flicker
         webPreferences: {
             nodeIntegration: true,

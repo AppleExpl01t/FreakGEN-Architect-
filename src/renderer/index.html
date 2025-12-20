@@ -21,12 +21,16 @@
         <!-- Sidebar / Control Panel -->
         <aside class="sidebar">
             <header class="sidebar-header">
-                <div class="logo">FREAK<span class="highlight">GEN</span></div>
+                <div class="header-row">
+                    <div class="logo">FREAK<span class="highlight">GEN</span></div>
+                    <button id="btn-settings" class="settings-btn" aria-label="Settings">⚙️</button>
+                </div>
                 <div class="subtitle">ARCHITECT V2.7</div>
             </header>
 
             <div class="controls">
-                <div class="control-group">
+                <div class="control-group"
+                    data-tooltip="Select a musical style to guide the patch generation algorithms.">
                     <label for="sel-style">Design Style</label>
                     <div class="select-wrapper">
                         <select id="sel-style">
@@ -47,7 +51,19 @@
                     </div>
                 </div>
 
-                <div class="control-group">
+                <div class="control-group"
+                    data-tooltip="Force a specific oscillator engine or allow the style to decide.">
+                    <label for="sel-engine">Oscillator Engine / Type</label>
+                    <div class="select-wrapper">
+                        <select id="sel-engine">
+                            <option value="random">Random (Style Based)</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-group"
+                    data-tooltip="Determines the density of the modulation matrix and parameter ranges.">
                     <label for="sel-intensity">Complexity</label>
                     <div class="select-wrapper">
                         <select id="sel-intensity">
@@ -61,7 +77,8 @@
 
                 <div class="action-area">
                     <div id="style-reveal" class="status-text">Ready to Build</div>
-                    <button id="btn-generate" class="btn-primary">
+                    <button id="btn-generate" class="btn-primary"
+                        data-tooltip="Generate a new complete patch based on current settings. Locks are respected.">
                         <span>GENERATE PATCH</span>
                         <div class="btn-shine"></div>
                     </button>
@@ -70,20 +87,41 @@
 
             <footer class="sidebar-footer">
                 <p>Designed for Arturia MicroFreak</p>
-                <div class="credits">
-                    <div class="credit-row">
-                        <span class="role-label">Lead</span>
-                        <a href="#" class="credit-link"
-                            onclick="require('electron').shell.openExternal('https://discord.gg/ZHX7KRVBMB')">Comet620</a>
-                    </div>
-                    <div class="credit-row">
-                        <span class="role-label">Dev</span>
-                        <a href="#" class="credit-link"
-                            onclick="require('electron').shell.openExternal('https://github.com/AppleExpl01t')">AppleExpl01t</a>
-                    </div>
-                </div>
             </footer>
         </aside>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button id="btn-close-settings" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-item">
+                        <label for="toggle-tooltips">Show Tooltips</label>
+                        <input type="checkbox" id="toggle-tooltips" checked>
+                    </div>
+
+                    <div class="credits">
+                        <h4>Credits</h4>
+                        <div class="credit-row">
+                            <span class="role-label">Lead</span>
+                            <a href="#" class="credit-link"
+                                onclick="require('electron').shell.openExternal('https://discord.gg/ZHX7KRVBMB')">Comet620</a>
+                        </div>
+                        <div class="credit-row">
+                            <span class="role-label">Dev</span>
+                            <a href="#" class="credit-link"
+                                onclick="require('electron').shell.openExternal('https://github.com/AppleExpl01t')">AppleExpl01t</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tooltip Element -->
+        <div id="tooltip" class="tooltip hidden"></div>
 
         <!-- Main Content / Results -->
         <main class="content-area">
