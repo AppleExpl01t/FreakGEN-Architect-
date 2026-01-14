@@ -28,7 +28,7 @@ ipcRenderer.on('update-status', (event, data) => {
 });
 
 const {
-    oscTypes, chordTypes, oscParams, lfoShapes, lfoSyncRates, modSources, fixedDests, assignTargets, ccMap, styleEngines
+    oscTypes, chordTypes, oscParams, lfoShapes, lfoSyncRates, modSources, fixedDests, assignTargets, ccMap, styleEngines, engineSweetSpots, modRecipes
 } = require('./constants');
 const { rInt, rVal, getTime } = require('./utils');
 const JSZip = require('jszip'); // Use local dependency
@@ -578,10 +578,22 @@ function generateOsc(style, forceEngine = "random") {
 
     const params = oscParams[type] || { w: "Wave", t: "Timbre", s: "Shape" };
 
-    // Standard raw generation
-    let wRaw = rInt(128);
-    let tRaw = rInt(128);
-    let sRaw = rInt(128);
+    // Standard raw generation (Default 0-127)
+    let wMin = 0, wMax = 127;
+    let tMin = 0, tMax = 127;
+    let sMin = 0, sMax = 127;
+
+    // Apply Sweet Spots
+    const spots = engineSweetSpots[type];
+    if (spots) {
+        if (spots.w) { wMin = spots.w[0]; wMax = spots.w[1]; }
+        if (spots.t) { tMin = spots.t[0]; tMax = spots.t[1]; }
+        if (spots.s) { sMin = spots.s[0]; sMax = spots.s[1]; }
+    }
+
+    let wRaw = rVal(wMin, wMax);
+    let tRaw = rVal(tMin, tMax);
+    let sRaw = rVal(sMin, sMax);
 
     let waveVal = Math.floor(wRaw / 127 * 100) + "%";
     let tVal = Math.floor(tRaw / 127 * 100) + "%";
@@ -741,18 +753,52 @@ function generateMatrixData(style, intensity) {
 
     // 3. Generate Connections
     let minCycConnections = needsCycActivity ? 1 : 0;
-
+    let slotsAvailable = count;
+    
     let pairs = new Set();
+    // usedSources already initialized at top of function? Let's check.
+    // Line 715: let usedSources = new Set(); -> Yes it is.
+    // So only pairs needs creating here if it wasn't already.
+    // Actually pairs was defined at line 766 in original code (now deleted/moved).
+    // So we just need to ensure `pairs` is defined before the loop.
+
+    // A. Apply Recipes (Smart Connections)
+    for (const recipe of modRecipes) {
+        if (slotsAvailable <= 0) break;
+        if (Math.random() < recipe.prob) {
+             let s = recipe.source;
+             let d = recipe.dest;
+
+             // Check if s/d are valid in this context?
+             // Our recipes use generic names. d might need mapping if it's "Wave" (Osc Engine specific?)
+             // But for now fixedDests handles "Wave" generic.
+
+             if (pairs.has(s + d)) continue;
+             
+             // Check constraints (e.g. don't pick CycEnv if we don't need it? Or just allow it?)
+             // If we pick CycEnv recipe, we satisfy minCycConnections.
+             
+             let amtRaw = rVal(recipe.amount[0], recipe.amount[1]);
+             let finalAmt = Math.random() < 0.5 ? amtRaw : -amtRaw;
+
+             connections.push({source: s, dest: d, amount: finalAmt});
+             pairs.add(s + d);
+             usedSources.add(s);
+             slotsAvailable--;
+
+             if (s === "CycEnv") minCycConnections = 0;
+        }
+    }
+
+    // B. Fill remainder
     let cols = [...fixedDests, "Assign 1", "Assign 2", "Assign 3"];
 
-    for (let i = 0; i < count; i++) {
+    while (slotsAvailable > 0) {
         let s, d;
 
         // Forced injection for constraints
-        if (minCycConnections > 0) {
+        if (minCycConnections > 0 && !usedSources.has("CycEnv")) {
             s = "CycEnv";
-            // Pick a valid destination other than the one we are trying to enable? 
-            // Doesn't matter, as long as it modulates SOMETHING, it is "Active".
             d = cols[rInt(cols.length)];
             minCycConnections--;
         } else {
@@ -768,22 +814,20 @@ function generateMatrixData(style, intensity) {
         usedSources.add(s);
         if (d.includes("Assign")) usedAssigns.add(d);
 
-        // Value Generation Logic
+        // Value Generation
         let val = rVal(-100, 100);
 
-        // Pitch Guardrails (V2.0/V2.5)
-        // Simple/Mod intensity limits pitch mod unless percussion
+        // Pitch Guardrails
         if (d === "Pitch" && style !== "percussion" && (intensity === "simple" || intensity === "moderate")) {
-            val = (rVal(-8, 8) / 10.0); // -0.8 to +0.8
+            val = (rVal(-8, 8) / 10.0); 
         }
 
-        // Unispread Logic (V2.5/V2.6)
-        // Must be positive
         if (d === "Unispread" || targetParam === "Unispread") {
             val = Math.abs(val);
         }
 
         connections.push({ s, d, a: val, targetParam });
+        slotsAvailable--;
     }
 
     // --- Post-Processing Constraint Check (User Request) ---

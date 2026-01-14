@@ -47,6 +47,33 @@ const styleEngines = {
     "random": oscTypes
 };
 
+const engineSweetSpots = {
+    // [min, max] for w (Wave), t (Timbre), s (Shape)
+    "BasicWaves": { w: [0, 100], t: [10, 90], s: [0, 60] },
+    "Superwave": { w: [0, 127], t: [10, 50], s: [80, 127] }, // Detune (t) not too high
+    "Wavetable": { w: [0, 127], t: [0, 127], s: [20, 100] }, // Chorus (s)
+    "Harmonic": { w: [0, 127], t: [0, 127], s: [30, 90] },
+    "KarplusStrong": { w: [20, 100], t: [20, 100], s: [10, 80] }, // Bow (w) needs signal
+    "Virtual Analog": { w: [0, 60], t: [0, 127], s: [0, 127] }, // Detune (w)
+    "Two Op FM": { w: [0, 127], t: [20, 100], s: [0, 80] }, // Index (t)
+    "Formant": { w: [0, 127], t: [20, 100], s: [0, 127] },
+    "Chords": { w: [0, 127], t: [0, 127], s: [0, 127] },
+    "Speech": { w: [0, 127], t: [0, 127], s: [0, 127] },
+    "Modal": { w: [0, 127], t: [20, 100], s: [10, 60] }, // Damping (s) not too quick
+    "Noise": { w: [0, 127], t: [0, 127], s: [0, 127] },
+    "Bass": { w: [20, 100], t: [0, 60], s: [0, 127] }, // Saturation (w)
+    "SawX": { w: [0, 80], t: [0, 127], s: [0, 80] } // Spread (w)
+};
+
+const modRecipes = [
+    { name: "Vibrato", source: "LFO", dest: "Pitch", amount: [1, 5], prob: 0.4 },
+    { name: "Filter Sweep", source: "Envelope", dest: "Cutoff", amount: [20, 80], prob: 0.5 },
+    { name: "PWM", source: "LFO", dest: "Timbre", amount: [10, 40], prob: 0.3 },
+    { name: "Timbre Move", source: "CycEnv", dest: "Wave", amount: [10, 60], prob: 0.3 },
+    { name: "Pressure Exp", source: "Pressure", dest: "Timbre", amount: [20, 60], prob: 0.25 },
+    { name: "Pressure Filt", source: "Pressure", dest: "Cutoff", amount: [20, 60], prob: 0.3 }
+];
+
 // MIDI CC Map
 const ccMap = {
     // Oscillator
@@ -89,5 +116,7 @@ module.exports = {
     fixedDests,
     assignTargets,
     styleEngines,
+    engineSweetSpots,
+    modRecipes,
     ccMap
 };
