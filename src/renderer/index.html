@@ -1,460 +1,818 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MicroFreak Architect</title>
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
-        rel="stylesheet">
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
 
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-</head>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<body>
+  <body>
     <div class="app-background"></div>
 
     <!-- Toast Notification -->
     <div id="toast" class="toast hidden">
-        <span id="toast-message"></span>
+      <span id="toast-message"></span>
     </div>
 
     <div class="app-container">
-        <!-- Sidebar / Control Panel -->
-        <aside class="sidebar">
-            <header class="sidebar-header">
-                <div class="header-row">
-                    <div class="logo">FREAK<span class="highlight">GEN</span></div>
-                    <div class="header-controls">
-                        <button id="btn-settings" class="settings-btn" aria-label="Settings"
-                            data-tooltip="Settings">⚙️</button>
-                    </div>
-                </div>
-                <div class="subtitle">ARCHITECT V2.8</div>
-            </header>
+      <!-- Sidebar / Control Panel -->
+      <aside class="sidebar">
+        <header class="sidebar-header">
+          <div class="header-row">
+            <div class="logo">FREAK<span class="highlight">GEN</span></div>
+            <div class="header-controls">
+              <button
+                id="btn-settings"
+                class="settings-btn"
+                aria-label="Settings"
+                data-tooltip="Settings"
+              >
+                ⚙️
+              </button>
+            </div>
+          </div>
+          <div class="subtitle">ARCHITECT V2.8</div>
+        </header>
 
-            <div class="controls">
-                <div class="control-group"
-                    data-tooltip="Select a musical style to guide the patch generation algorithms.">
-                    <label for="sel-style">Design Style</label>
-                    <div class="select-wrapper">
-                        <select id="sel-style">
-                            <option value="random">Random Style</option>
-                            <option value="none">Chaos (None)</option>
-                            <option value="bass">Bass</option>
-                            <option value="brass">Brass</option>
-                            <option value="keys">Keys</option>
-                            <option value="lead">Lead</option>
-                            <option value="organ">Organ</option>
-                            <option value="pad">Pad</option>
-                            <option value="percussion">Percussion</option>
-                            <option value="sequence">Sequence / Arp</option>
-                            <option value="sfx">SFX</option>
-                            <option value="strings">Strings</option>
-                            <option value="vocoder">Vocoder</option>
-                        </select>
-                    </div>
-                </div>
+        <div class="controls">
+          <div
+            class="control-group"
+            data-tooltip="Select a musical style to guide the patch generation algorithms."
+          >
+            <label for="sel-style">Design Style</label>
+            <div class="select-wrapper">
+              <select id="sel-style">
+                <option value="random">Random Style</option>
+                <option value="none">Chaos (None)</option>
+                <option value="bass">Bass</option>
+                <option value="brass">Brass</option>
+                <option value="keys">Keys</option>
+                <option value="lead">Lead</option>
+                <option value="organ">Organ</option>
+                <option value="pad">Pad</option>
+                <option value="percussion">Percussion</option>
+                <option value="sequence">Sequence / Arp</option>
+                <option value="sfx">SFX</option>
+                <option value="strings">Strings</option>
+                <option value="vocoder">Vocoder</option>
+              </select>
+            </div>
+          </div>
 
-                <div class="control-group"
-                    data-tooltip="Force a specific oscillator engine or allow the style to decide.">
-                    <label for="sel-engine">Oscillator Engine / Type</label>
-                    <div class="select-wrapper">
-                        <select id="sel-engine">
-                            <option value="random">Random (Style Based)</option>
-                            <!-- Populated by JS -->
-                        </select>
-                    </div>
-                </div>
+          <div
+            class="control-group"
+            data-tooltip="Force a specific oscillator engine or allow the style to decide."
+          >
+            <label for="sel-engine">Oscillator Engine / Type</label>
+            <div class="select-wrapper">
+              <select id="sel-engine">
+                <option value="random">Random (Style Based)</option>
+                <!-- Populated by JS -->
+              </select>
+            </div>
+          </div>
 
-                <div class="control-group"
-                    data-tooltip="Determines the density of the modulation matrix and parameter ranges.">
-                    <label for="sel-intensity">Complexity</label>
-                    <div class="select-wrapper">
-                        <select id="sel-intensity">
-                            <option value="simple">Simple</option>
-                            <option value="moderate" selected>Moderate</option>
-                            <option value="high">High</option>
-                            <option value="extreme">Extreme</option>
-                        </select>
-                    </div>
-                </div>
+          <div
+            class="control-group"
+            data-tooltip="Determines the density of the modulation matrix and parameter ranges."
+          >
+            <label for="sel-intensity">Complexity</label>
+            <div class="select-wrapper">
+              <select id="sel-intensity">
+                <option value="simple">Simple</option>
+                <option value="moderate" selected>Moderate</option>
+                <option value="high">High</option>
+                <option value="extreme">Extreme</option>
+              </select>
+            </div>
+          </div>
 
-                <div class="action-area">
-                    <div id="style-reveal" class="status-text">Ready to Build</div>
-                    <div class="button-row" style="margin-bottom:10px;">
-                        <button id="btn-generate" class="btn-primary"
-                            data-tooltip="Generate a new complete patch based on current settings. Locks are respected.">
-                            <span>GENERATE</span>
-                            <div class="btn-shine"></div>
-                        </button>
-                    </div>
-
-                    <!-- AI Clone Button (Moved) -->
-                    <!-- AI Button Removed -->
-
-                    <!-- Send to MIDI Button -->
-                    <button id="btn-push-midi" class="btn-secondary"
-                        style="margin-bottom: 10px; width: 100%; text-align: center; justify-content: center; background: rgba(0, 255, 136, 0.1); border-color: rgba(0, 255, 136, 0.3); color: #00ff88;"
-                        data-tooltip="Push current values to MicroFreak via MIDI">
-                        📡 PUSH TO SYNTH
-                    </button>
-
-                    <div class="button-row">
-                        <button id="btn-undo" class="btn-secondary" style="flex: 0.4; padding: 16px 10px;"
-                            data-tooltip="Undo: Load previous patch (Max 3 stored)" disabled>
-                            ↩️
-                        </button>
-                        <button id="btn-save" class="btn-secondary" style="flex: 1;"
-                            data-tooltip="Save current patch to library.">
-                            <span>SAVE</span>
-                        </button>
-                        <button id="btn-redo" class="btn-secondary" style="flex: 0.4; padding: 16px 10px;"
-                            data-tooltip="Redo: Go forward to next patch" disabled>
-                            ↪️
-                        </button>
-                    </div>
-                    <button id="btn-gallery" class="btn-secondary"
-                        style="margin-top:10px; width:100%; text-align:center; padding:12px;"
-                        data-tooltip="Open Saved Presets Gallery">
-                        📂 VIEW LIBRARY
-                    </button>
-                </div>
+          <div class="action-area">
+            <div id="style-reveal" class="status-text">Ready to Build</div>
+            <div class="button-row" style="margin-bottom: 10px">
+              <button
+                id="btn-generate"
+                class="btn-primary"
+                data-tooltip="Generate a new complete patch based on current settings. Locks are respected."
+              >
+                <span>GENERATE</span>
+                <div class="btn-shine"></div>
+              </button>
             </div>
 
-            <footer class="sidebar-footer">
-                <p>Designed for Arturia MicroFreak</p>
-            </footer>
-        </aside>
+            <!-- AI Clone Button (Moved) -->
+            <!-- AI Button Removed -->
 
-        <!-- Settings Modal (Refactored) -->
-        <div id="settings-modal" class="modal-overlay hidden">
-            <div class="modal-content" style="min-height: 600px; display: flex; flex-direction: column;">
-                <div class="modal-header">
-                    <button id="btn-back-settings" class="icon-btn hidden"
-                        style="margin-right: 10px; font-size:16px;">&larr;</button>
-                    <h3 id="settings-title">Settings</h3>
-                    <button id="btn-close-settings" class="close-btn" style="margin-left: auto;">&times;</button>
-                </div>
-                <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+            <!-- Send to MIDI Button -->
+            <button
+              id="btn-push-midi"
+              class="btn-secondary"
+              style="
+                margin-bottom: 10px;
+                width: 100%;
+                text-align: center;
+                justify-content: center;
+                background: rgba(0, 255, 136, 0.1);
+                border-color: rgba(0, 255, 136, 0.3);
+                color: #00ff88;
+              "
+              data-tooltip="Push current values to MicroFreak via MIDI"
+            >
+              📡 PUSH TO SYNTH
+            </button>
 
-                    <!-- MAIN MENU -->
-                    <div id="settings-main-menu" class="settings-menu-list"
-                        style="display: flex; flex-direction: column; gap: 10px;">
-                        <button id="btn-settings-general" class="btn-secondary"
-                            style="justify-content: space-between; padding: 15px;">
-                            <span>🔧 General Settings</span> <span style="opacity:0.5">&rsaquo;</span>
-                        </button>
-                        <button id="btn-settings-midi" class="btn-secondary"
-                            style="justify-content: space-between; padding: 15px;">
-                            <span>🎹 MIDI Controls</span> <span style="opacity:0.5">&rsaquo;</span>
-                        </button>
-                        <button id="btn-settings-debug" class="btn-secondary"
-                            style="justify-content: space-between; padding: 15px;">
-                            <span>🐞 Debug / Test</span> <span style="opacity:0.5">&rsaquo;</span>
-                        </button>
-                    </div>
-
-                    <!-- SUB: GENERAL -->
-                    <div id="settings-sub-general" class="settings-sub-page hidden">
-                        <div class="setting-item">
-                            <label for="history-depth" data-tooltip="Number of previous patches to remember (1-20)">Undo
-                                History Depth</label>
-                            <input type="number" id="history-depth" value="3" min="1" max="20"
-                                style="width: 60px; text-align: center;">
-                        </div>
-
-                        <div class="setting-item">
-                            <label for="toggle-tooltips">Enable Tooltips</label>
-                            <input type="checkbox" id="toggle-tooltips">
-                        </div>
-
-                        <div class="setting-item">
-                            <label>Library Path</label>
-                            <div class="path-select">
-                                <input type="text" id="lib-path-display" readonly placeholder="Default">
-                                <button id="btn-change-path">...</button>
-                            </div>
-                        </div>
-
-                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
-
-                        <!-- AI Settings Removed -->
-
-                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
-
-                        <div class="credits">
-                            <h4>Credits</h4>
-                            <div class="credit-row"><span class="role-label">Lead</span><a href="#" class="credit-link"
-                                    onclick="require('electron').shell.openExternal('https://discord.gg/ZHX7KRVBMB')">Comet620</a>
-                            </div>
-                            <div class="credit-row"><span class="role-label">Dev</span><a href="#" class="credit-link"
-                                    onclick="require('electron').shell.openExternal('https://github.com/AppleExpl01t')">AppleExpl01t</a>
-                            </div>
-                        </div>
-
-                        <div class="setting-item" style="justify-content: center; margin-top: 20px;">
-                            <span class="version-text">v3.3.1</span>
-                        </div>
-                        <div class="button-row" style="margin-top: 10px;">
-                            <button id="btn-check-updates" class="btn-secondary"
-                                style="font-size: 11px; padding: 8px;">Check for Updates</button>
-                        </div>
-                    </div>
-
-                    <!-- SUB: MIDI -->
-                    <div id="settings-sub-midi" class="settings-sub-page hidden">
-                        <p style="margin-bottom: 15px; font-size: 0.9em; opacity: 0.8;">Select your MicroFreak specific
-                            MIDI output.</p>
-                        <div class="control-group">
-                            <label for="midi-output-select">MIDI Output Device</label>
-                            <div class="select-wrapper">
-                                <select id="midi-output-select">
-                                    <option value="">Scanning...</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div id="midi-status" style="margin-top: 10px; font-size: 0.85em; color: var(--accent);">
-                            Checking MIDI permissions...</div>
-                        <button id="btn-refresh-midi" class="btn-secondary" style="margin-top: 15px; width: 100%;">🔄
-                            Refresh Devices</button>
-
-                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
-
-                        <div class="control-group">
-                            <label for="program-change-num">Select Preset on Synth (Program Change)</label>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <input type="number" id="program-change-num" min="1" max="384" value="1"
-                                    style="width: 80px; text-align: center; padding: 10px;">
-                                <button id="btn-send-program-change" class="btn-secondary" style="flex: 1;">📡
-                                    Send</button>
-                            </div>
-                        </div>
-
-                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
-
-                        <button id="btn-open-mcc" class="btn-secondary"
-                            style="width: 100%; background: rgba(0, 255, 136, 0.1); border-color: rgba(0, 255, 136, 0.3); color: #00ff88;">🎛️
-                            Open MIDI Control Center</button>
-                    </div>
-
-                    <!-- SUB: DEBUG -->
-                    <div id="settings-sub-debug" class="settings-sub-page hidden">
-                        <div class="setting-item">
-                            <label for="toggle-debug">Debug Mode (Error Popups)</label>
-                            <input type="checkbox" id="toggle-debug">
-                        </div>
-
-                        <div class="setting-item">
-                            <label for="toggle-emulate-synth">Emulate Synth (Virtual MIDI)</label>
-                            <input type="checkbox" id="toggle-emulate-synth">
-                        </div>
-
-                        <button id="btn-test-error" class="btn-secondary"
-                            style="margin-top:10px; border-color: #e74c3c; color: #e74c3c;">⚠️ Trigger Test
-                            Error</button>
-
-                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
-
-                        <h4 style="margin-bottom:10px;">🎛️ MIDI Control Panel</h4>
-                        <p style="font-size:11px; color:#aaa; margin-bottom:15px;">Test every parameter individually.
-                        </p>
-
-                        <!-- New Container for generated debug controls -->
-                        <div id="debug-midi-panel"
-                            style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; max-height:400px; overflow-y:auto;">
-                            <!-- Populated by JS -->
-                            <button id="btn-load-debug-midi" class="btn-secondary">Load Controls...</button>
-                        </div>
-                    </div>
-
-                </div>
+            <div class="button-row">
+              <button
+                id="btn-undo"
+                class="btn-secondary"
+                style="flex: 0.4; padding: 16px 10px"
+                data-tooltip="Undo: Load previous patch (Max 3 stored)"
+                disabled
+              >
+                ↩️
+              </button>
+              <button
+                id="btn-save"
+                class="btn-secondary"
+                style="flex: 1"
+                data-tooltip="Save current patch to library."
+              >
+                <span>SAVE</span>
+              </button>
+              <button
+                id="btn-redo"
+                class="btn-secondary"
+                style="flex: 0.4; padding: 16px 10px"
+                data-tooltip="Redo: Go forward to next patch"
+                disabled
+              >
+                ↪️
+              </button>
             </div>
+            <button
+              id="btn-gallery"
+              class="btn-secondary"
+              style="
+                margin-top: 10px;
+                width: 100%;
+                text-align: center;
+                padding: 12px;
+              "
+              data-tooltip="Open Saved Presets Gallery"
+            >
+              📂 VIEW LIBRARY
+            </button>
+          </div>
         </div>
 
+        <footer class="sidebar-footer">
+          <p>Designed for Arturia MicroFreak</p>
+        </footer>
+      </aside>
 
-        <!-- Save Preset Modal -->
-        <div id="save-modal" class="modal-overlay hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Save Preset</h3>
-                    <button id="btn-close-save" class="close-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="input-group">
-                        <label for="save-name">Preset Name</label>
-                        <input type="text" id="save-name" placeholder="My Awesome Lead">
-                    </div>
-                    <div class="input-group">
-                        <label for="save-desc">Description</label>
-                        <textarea id="save-desc" rows="3" placeholder="Notes about usage..."></textarea>
-                    </div>
-                    <button id="btn-confirm-save" class="btn-primary" style="margin-top:15px;">SAVE PRESET</button>
-                </div>
+      <!-- Settings Modal (Refactored) -->
+      <div id="settings-modal" class="modal-overlay hidden">
+        <div
+          class="modal-content"
+          style="min-height: 600px; display: flex; flex-direction: column"
+        >
+          <div class="modal-header">
+            <button
+              id="btn-back-settings"
+              class="icon-btn hidden"
+              style="margin-right: 10px; font-size: 16px"
+            >
+              &larr;
+            </button>
+            <h3 id="settings-title">Settings</h3>
+            <button
+              id="btn-close-settings"
+              class="close-btn"
+              style="margin-left: auto"
+            >
+              &times;
+            </button>
+          </div>
+          <div
+            class="modal-body"
+            style="flex: 1; overflow-y: auto; padding: 20px"
+          >
+            <!-- MAIN MENU -->
+            <div
+              id="settings-main-menu"
+              class="settings-menu-list"
+              style="display: flex; flex-direction: column; gap: 10px"
+            >
+              <button
+                id="btn-settings-general"
+                class="btn-secondary"
+                style="justify-content: space-between; padding: 15px"
+              >
+                <span>🔧 General Settings</span>
+                <span style="opacity: 0.5">&rsaquo;</span>
+              </button>
+              <button
+                id="btn-settings-midi"
+                class="btn-secondary"
+                style="justify-content: space-between; padding: 15px"
+              >
+                <span>🎹 MIDI Controls</span>
+                <span style="opacity: 0.5">&rsaquo;</span>
+              </button>
+              <button
+                id="btn-settings-debug"
+                class="btn-secondary"
+                style="justify-content: space-between; padding: 15px"
+              >
+                <span>🐞 Debug / Test</span>
+                <span style="opacity: 0.5">&rsaquo;</span>
+              </button>
             </div>
+
+            <!-- SUB: GENERAL -->
+            <div id="settings-sub-general" class="settings-sub-page hidden">
+              <div class="setting-item">
+                <label
+                  for="history-depth"
+                  data-tooltip="Number of previous patches to remember (1-20)"
+                  >Undo History Depth</label
+                >
+                <input
+                  type="number"
+                  id="history-depth"
+                  value="3"
+                  min="1"
+                  max="20"
+                  style="width: 60px; text-align: center"
+                />
+              </div>
+
+              <div class="setting-item">
+                <label for="toggle-tooltips">Enable Tooltips</label>
+                <input type="checkbox" id="toggle-tooltips" />
+              </div>
+
+              <div class="setting-item">
+                <label>Library Path</label>
+                <div class="path-select">
+                  <input
+                    type="text"
+                    id="lib-path-display"
+                    readonly
+                    placeholder="Default"
+                  />
+                  <button id="btn-change-path">...</button>
+                </div>
+              </div>
+
+              <hr
+                style="
+                  border: 0;
+                  border-top: 1px solid var(--border);
+                  margin: 15px 0;
+                "
+              />
+
+              <!-- AI Settings Removed -->
+
+              <hr
+                style="
+                  border: 0;
+                  border-top: 1px solid var(--border);
+                  margin: 15px 0;
+                "
+              />
+
+              <div class="credits">
+                <h4>Credits</h4>
+                <div class="credit-row">
+                  <span class="role-label">Lead</span
+                  ><a
+                    href="#"
+                    class="credit-link"
+                    onclick="require('electron').shell.openExternal('https://discord.gg/ZHX7KRVBMB')"
+                    >Comet620</a
+                  >
+                </div>
+                <div class="credit-row">
+                  <span class="role-label">Dev</span
+                  ><a
+                    href="#"
+                    class="credit-link"
+                    onclick="require('electron').shell.openExternal('https://github.com/AppleExpl01t')"
+                    >AppleExpl01t</a
+                  >
+                </div>
+              </div>
+
+              <div
+                class="setting-item"
+                style="justify-content: center; margin-top: 20px"
+              >
+                <span class="version-text">v3.3.1</span>
+              </div>
+              <div class="button-row" style="margin-top: 10px">
+                <button
+                  id="btn-check-updates"
+                  class="btn-secondary"
+                  style="font-size: 11px; padding: 8px"
+                >
+                  Check for Updates
+                </button>
+              </div>
+            </div>
+
+            <!-- SUB: MIDI -->
+            <div id="settings-sub-midi" class="settings-sub-page hidden">
+              <p style="margin-bottom: 15px; font-size: 0.9em; opacity: 0.8">
+                Select your MicroFreak specific MIDI output.
+              </p>
+              <div class="control-group">
+                <label for="midi-output-select">MIDI Output Device</label>
+                <div class="select-wrapper">
+                  <select id="midi-output-select">
+                    <option value="">Scanning...</option>
+                  </select>
+                </div>
+              </div>
+              <div
+                id="midi-status"
+                style="
+                  margin-top: 10px;
+                  font-size: 0.85em;
+                  color: var(--accent);
+                "
+              >
+                Checking MIDI permissions...
+              </div>
+              <button
+                id="btn-refresh-midi"
+                class="btn-secondary"
+                style="margin-top: 15px; width: 100%"
+              >
+                🔄 Refresh Devices
+              </button>
+
+              <hr
+                style="
+                  border: 0;
+                  border-top: 1px solid var(--border);
+                  margin: 20px 0;
+                "
+              />
+
+              <div class="control-group">
+                <label for="program-change-num"
+                  >Select Preset on Synth (Program Change)</label
+                >
+                <div style="display: flex; gap: 10px; align-items: center">
+                  <input
+                    type="number"
+                    id="program-change-num"
+                    min="1"
+                    max="384"
+                    value="1"
+                    style="width: 80px; text-align: center; padding: 10px"
+                  />
+                  <button
+                    id="btn-send-program-change"
+                    class="btn-secondary"
+                    style="flex: 1"
+                  >
+                    📡 Send
+                  </button>
+                </div>
+              </div>
+
+              <hr
+                style="
+                  border: 0;
+                  border-top: 1px solid var(--border);
+                  margin: 20px 0;
+                "
+              />
+
+              <button
+                id="btn-open-mcc"
+                class="btn-secondary"
+                style="
+                  width: 100%;
+                  background: rgba(0, 255, 136, 0.1);
+                  border-color: rgba(0, 255, 136, 0.3);
+                  color: #00ff88;
+                "
+              >
+                🎛️ Open MIDI Control Center
+              </button>
+            </div>
+
+            <!-- SUB: DEBUG -->
+            <div id="settings-sub-debug" class="settings-sub-page hidden">
+              <div class="setting-item">
+                <label for="toggle-debug">Debug Mode (Error Popups)</label>
+                <input type="checkbox" id="toggle-debug" />
+              </div>
+
+              <div class="setting-item">
+                <label for="toggle-emulate-synth"
+                  >Emulate Synth (Virtual MIDI)</label
+                >
+                <input type="checkbox" id="toggle-emulate-synth" />
+              </div>
+
+              <button
+                id="btn-test-error"
+                class="btn-secondary"
+                style="margin-top: 10px; border-color: #e74c3c; color: #e74c3c"
+              >
+                ⚠️ Trigger Test Error
+              </button>
+
+              <hr
+                style="
+                  border: 0;
+                  border-top: 1px solid var(--border);
+                  margin: 20px 0;
+                "
+              />
+
+              <h4 style="margin-bottom: 10px">🎛️ MIDI Control Panel</h4>
+              <p style="font-size: 11px; color: #aaa; margin-bottom: 15px">
+                Test every parameter individually.
+              </p>
+
+              <!-- New Container for generated debug controls -->
+              <div
+                id="debug-midi-panel"
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(2, 1fr);
+                  gap: 10px;
+                  max-height: 400px;
+                  overflow-y: auto;
+                "
+              >
+                <!-- Populated by JS -->
+                <button id="btn-load-debug-midi" class="btn-secondary">
+                  Load Controls...
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Preset Modal -->
+      <div id="save-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Save Preset</h3>
+            <button id="btn-close-save" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="input-group">
+              <label for="save-name">Preset Name</label>
+              <input type="text" id="save-name" placeholder="My Awesome Lead" />
+            </div>
+            <div class="input-group">
+              <label for="save-desc">Description</label>
+              <textarea
+                id="save-desc"
+                rows="3"
+                placeholder="Notes about usage..."
+              ></textarea>
+            </div>
+            <button
+              id="btn-confirm-save"
+              class="btn-primary"
+              style="margin-top: 15px"
+            >
+              SAVE PRESET
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Push Instructions Modal -->
+      <div id="manual-push-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="width: 380px">
+          <div class="modal-header">
+            <h3>Manual Adjustments Required</h3>
+            <button id="btn-close-manual" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p
+              style="
+                font-size: 12px;
+                color: var(--text-secondary);
+                margin-bottom: 15px;
+              "
+            >
+              Some parameters cannot be set via MIDI CC. Please set these
+              manually on your MicroFreak:
+            </p>
+            <div
+              id="manual-instructions-list"
+              style="
+                background: rgba(0, 0, 0, 0.2);
+                padding: 10px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+                font-size: 13px;
+                font-family: var(--font-mono);
+                border: 1px solid var(--border);
+              "
+            >
+              <!-- Injected by JS -->
+            </div>
+            <button id="btn-manual-done" class="btn-primary">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Error Report Modal -->
+      <div id="error-modal" class="modal-overlay hidden" style="z-index: 2000">
+        <div class="modal-content" style="width: 500px; border-color: #e74c3c">
+          <div
+            class="modal-header"
+            style="border-bottom-color: rgba(231, 76, 60, 0.3)"
+          >
+            <h3 style="color: #e74c3c">Application Error</h3>
+            <button id="btn-close-error" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p
+              id="error-context"
+              style="margin-bottom: 10px; color: #fff; font-weight: bold"
+            ></p>
+            <div style="position: relative">
+              <textarea
+                id="error-details"
+                readonly
+                style="
+                  width: 100%;
+                  height: 150px;
+                  background: rgba(0, 0, 0, 0.3);
+                  border: 1px solid rgba(231, 76, 60, 0.3);
+                  color: #ffcccc;
+                  font-family: var(--font-mono);
+                  font-size: 11px;
+                  padding: 10px;
+                  resize: none;
+                  margin-bottom: 15px;
+                "
+              ></textarea>
+              <button
+                id="btn-copy-error"
+                class="icon-btn"
+                style="
+                  position: absolute;
+                  top: 5px;
+                  right: 5px;
+                  color: #fff;
+                  background: rgba(0, 0, 0, 0.5);
+                  border: none;
+                  padding: 4px;
+                "
+                title="Copy to Clipboard"
+              >
+                📋
+              </button>
+            </div>
+
+            <div class="button-row">
+              <button id="btn-dismiss-error" class="btn-secondary">
+                Dismiss
+              </button>
+              <button
+                id="btn-report-github"
+                class="btn-primary"
+                style="background: #e74c3c; color: white"
+              >
+                Report Issue
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Clone Modal Removed -->
+
+      <!-- Tooltip Element -->
+      <div id="tooltip" class="tooltip hidden"></div>
+
+      <!-- Main Content / Results -->
+      <!-- Main Content / Results -->
+      <main class="content-area">
+        <!-- Generator View -->
+        <div id="view-generator">
+          <div id="output-grid" class="output-grid hidden">
+            <!-- Content will be injected here by JS -->
+          </div>
+          <div id="placeholder-message" class="placeholder-message">
+            <h2>Initialize Generation</h2>
+            <p>Select a style and intensity to architect a new sound.</p>
+          </div>
         </div>
 
-        <!-- Manual Push Instructions Modal -->
-        <div id="manual-push-modal" class="modal-overlay hidden">
-            <div class="modal-content" style="width: 380px;">
-                <div class="modal-header">
-                    <h3>Manual Adjustments Required</h3>
-                    <button id="btn-close-manual" class="close-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">
-                        Some parameters cannot be set via MIDI CC. Please set these manually on your MicroFreak:
-                    </p>
-                    <div id="manual-instructions-list"
-                        style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; font-family: var(--font-mono); border: 1px solid var(--border);">
-                        <!-- Injected by JS -->
-                    </div>
-                    <button id="btn-manual-done" class="btn-primary">Done</button>
-                </div>
-            </div>
+        <!-- Gallery View -->
+        <div id="view-gallery">
+          <div id="gallery-stats" class="gallery-stats"></div>
+          <div class="gallery-toolbar">
+            <input
+              type="text"
+              id="gallery-search"
+              placeholder="Search presets..."
+              data-tooltip="Search by Name or Description"
+              aria-label="Search presets"
+            />
+            <select
+              id="filter-style"
+              data-tooltip="Filter by Design Style"
+              aria-label="Filter by style"
+            >
+              <option value="all">All Styles</option>
+              <!-- Populated JS -->
+            </select>
+            <select
+              id="filter-engine"
+              data-tooltip="Filter by Oscillator Engine"
+              aria-label="Filter by engine"
+            >
+              <option value="all">All Engines</option>
+            </select>
+            <select
+              id="filter-complexity"
+              data-tooltip="Filter by Modulation Complexity"
+              aria-label="Filter by complexity"
+            >
+              <option value="all">All Complexity</option>
+              <option value="simple">Simple</option>
+              <option value="moderate">Moderate</option>
+              <option value="high">High</option>
+              <option value="extreme">Extreme</option>
+            </select>
+            <button
+              id="btn-filter-fav"
+              class="icon-btn"
+              data-tooltip="Show Favorites Only"
+              aria-label="Filter favorites"
+            >
+              ⭐
+            </button>
+            <button
+              id="btn-sort-date"
+              class="icon-btn"
+              data-tooltip="Toggle Sort: Name / Date"
+              aria-label="Toggle sort order"
+            >
+              📅
+            </button>
+            <button
+              id="btn-import"
+              class="icon-btn"
+              data-tooltip="Import Backup: Restore presets from ZIP"
+              aria-label="Import backup"
+            >
+              📥
+            </button>
+            <button
+              id="btn-backup"
+              class="icon-btn"
+              data-tooltip="Export Backup: Save all presets as ZIP"
+              aria-label="Export backup"
+            >
+              📦
+            </button>
+            <button
+              id="btn-export-freakgen"
+              class="icon-btn"
+              data-tooltip="Export selected preset as .freakgen file"
+              aria-label="Export FreakGEN format"
+              style="color: #a855f7"
+            >
+              💾
+            </button>
+            <button
+              id="btn-import-mfprojz"
+              class="icon-btn"
+              data-tooltip="Import .mfprojz file (view preset list)"
+              aria-label="Import mfprojz"
+              style="color: #00ff88"
+            >
+              📂
+            </button>
+          </div>
+          <div id="gallery-grid" class="gallery-grid">
+            <!-- Populated -->
+          </div>
+          <button
+            id="btn-back-gen"
+            class="btn-secondary"
+            style="margin-top: 20px; width: auto"
+            aria-label="Back to generator"
+          >
+            &larr; Back to Generator
+          </button>
         </div>
-
-        <!-- Custom Error Report Modal -->
-        <div id="error-modal" class="modal-overlay hidden" style="z-index: 2000;">
-            <div class="modal-content" style="width: 500px; border-color: #e74c3c;">
-                <div class="modal-header" style="border-bottom-color: rgba(231, 76, 60, 0.3);">
-                    <h3 style="color: #e74c3c;">Application Error</h3>
-                    <button id="btn-close-error" class="close-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p id="error-context" style="margin-bottom: 10px; color: #fff; font-weight: bold;"></p>
-                    <div style="position: relative;">
-                        <textarea id="error-details" readonly
-                            style="width: 100%; height: 150px; background: rgba(0,0,0,0.3); border: 1px solid rgba(231, 76, 60, 0.3); color: #ffcccc; font-family: var(--font-mono); font-size: 11px; padding: 10px; resize: none; margin-bottom: 15px;"></textarea>
-                        <button id="btn-copy-error" class="icon-btn"
-                            style="position: absolute; top: 5px; right: 5px; color: #fff; background: rgba(0,0,0,0.5); border: none; padding: 4px;"
-                            title="Copy to Clipboard">📋</button>
-                    </div>
-
-                    <div class="button-row">
-                        <button id="btn-dismiss-error" class="btn-secondary">Dismiss</button>
-                        <button id="btn-report-github" class="btn-primary"
-                            style="background: #e74c3c; color: white;">Report
-                            Issue</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- AI Clone Modal Removed -->
-
-        <!-- Tooltip Element -->
-        <div id="tooltip" class="tooltip hidden"></div>
-
-        <!-- Main Content / Results -->
-        <!-- Main Content / Results -->
-        <main class="content-area">
-            <!-- Generator View -->
-            <div id="view-generator">
-                <div id="output-grid" class="output-grid hidden">
-                    <!-- Content will be injected here by JS -->
-                </div>
-                <div id="placeholder-message" class="placeholder-message">
-                    <h2>Initialize Generation</h2>
-                    <p>Select a style and intensity to architect a new sound.</p>
-                </div>
-            </div>
-
-            <!-- Gallery View -->
-            <div id="view-gallery">
-                <div id="gallery-stats" class="gallery-stats"></div>
-                <div class="gallery-toolbar">
-                    <input type="text" id="gallery-search" placeholder="Search presets..."
-                        data-tooltip="Search by Name or Description" aria-label="Search presets">
-                    <select id="filter-style" data-tooltip="Filter by Design Style" aria-label="Filter by style">
-                        <option value="all">All Styles</option>
-                        <!-- Populated JS -->
-                    </select>
-                    <select id="filter-engine" data-tooltip="Filter by Oscillator Engine" aria-label="Filter by engine">
-                        <option value="all">All Engines</option>
-                    </select>
-                    <select id="filter-complexity" data-tooltip="Filter by Modulation Complexity"
-                        aria-label="Filter by complexity">
-                        <option value="all">All Complexity</option>
-                        <option value="simple">Simple</option>
-                        <option value="moderate">Moderate</option>
-                        <option value="high">High</option>
-                        <option value="extreme">Extreme</option>
-                    </select>
-                    <button id="btn-filter-fav" class="icon-btn" data-tooltip="Show Favorites Only"
-                        aria-label="Filter favorites">⭐</button>
-                    <button id="btn-sort-date" class="icon-btn" data-tooltip="Toggle Sort: Name / Date"
-                        aria-label="Toggle sort order">📅</button>
-                    <button id="btn-import" class="icon-btn" data-tooltip="Import Backup: Restore presets from ZIP"
-                        aria-label="Import backup">📥</button>
-                    <button id="btn-backup" class="icon-btn" data-tooltip="Export Backup: Save all presets as ZIP"
-                        aria-label="Export backup">📦</button>
-                    <button id="btn-export-freakgen" class="icon-btn"
-                        data-tooltip="Export selected preset as .freakgen file" aria-label="Export FreakGEN format"
-                        style="color: #a855f7;">💾</button>
-                    <button id="btn-import-mfprojz" class="icon-btn"
-                        data-tooltip="Import .mfprojz file (view preset list)" aria-label="Import mfprojz"
-                        style="color: #00ff88;">📂</button>
-                </div>
-                <div id="gallery-grid" class="gallery-grid">
-                    <!-- Populated -->
-                </div>
-                <button id="btn-back-gen" class="btn-secondary" style="margin-top:20px; width:auto;"
-                    aria-label="Back to generator">&larr; Back to
-                    Generator</button>
-            </div>
-        </main>
+      </main>
     </div>
 
-
-
     <!-- Control Center Modal -->
-    <div id="control-center-modal" class="modal-overlay hidden" style="z-index: 2100;">
-        <div class="modal-content" style="width: 600px; border-color: #00ff88;">
-            <div class="modal-header">
-                <h3 style="color: #00ff88;">🎛️ MicroFreak Control Center</h3>
-                <button id="btn-close-cc" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">
-                    Real-time MIDI Control. Adjust parameters here to affect the synth immediately.
-                </p>
-                <div id="control-center-grid"
-                    style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; max-height:500px; overflow-y:auto; padding-right: 10px;">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
+    <div
+      id="control-center-modal"
+      class="modal-overlay hidden"
+      style="z-index: 2100"
+    >
+      <div class="modal-content" style="width: 600px; border-color: #00ff88">
+        <div class="modal-header">
+          <h3 style="color: #00ff88">🎛️ MicroFreak Control Center</h3>
+          <button id="btn-close-cc" class="close-btn">&times;</button>
         </div>
+        <div class="modal-body">
+          <p
+            style="
+              font-size: 12px;
+              color: var(--text-secondary);
+              margin-bottom: 15px;
+            "
+          >
+            Real-time MIDI Control. Adjust parameters here to affect the synth
+            immediately.
+          </p>
+          <div
+            id="control-center-grid"
+            style="
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 10px;
+              max-height: 500px;
+              overflow-y: auto;
+              padding-right: 10px;
+            "
+          >
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- mfprojz Viewer Modal -->
     <div id="mfprojz-modal" class="modal-overlay hidden">
-        <div class="modal-content" style="width: 500px;">
-            <div class="modal-header">
-                <h3 style="color: #00ff88;">📂 mfprojz File Contents</h3>
-                <button id="btn-close-mfprojz" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">
-                    Presets found in the .mfprojz file. Note: Full preset details require MIDI Control Center.
-                </p>
-                <div id="mfprojz-preset-list"
-                    style="max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
-                    <!-- Populated by JS -->
-                </div>
-                <p style="font-size: 10px; color: var(--text-secondary); margin-top: 15px; text-align: center;">
-                    To load these presets onto your MicroFreak, use Arturia MIDI Control Center
-                </p>
-            </div>
+      <div class="modal-content" style="width: 500px">
+        <div class="modal-header">
+          <h3 style="color: #00ff88">📂 mfprojz File Contents</h3>
+          <button id="btn-close-mfprojz" class="close-btn">&times;</button>
         </div>
+        <div class="modal-body">
+          <p
+            style="
+              font-size: 12px;
+              color: var(--text-secondary);
+              margin-bottom: 15px;
+            "
+          >
+            Presets found in the .mfprojz file. Note: Full preset details
+            require MIDI Control Center.
+          </p>
+          <div
+            id="mfprojz-preset-list"
+            style="
+              max-height: 300px;
+              overflow-y: auto;
+              background: rgba(0, 0, 0, 0.2);
+              padding: 10px;
+              border-radius: 6px;
+              border: 1px solid var(--border);
+            "
+          >
+            <!-- Populated by JS -->
+          </div>
+          <p
+            style="
+              font-size: 10px;
+              color: var(--text-secondary);
+              margin-top: 15px;
+              text-align: center;
+            "
+          >
+            To load these presets onto your MicroFreak, use Arturia MIDI Control
+            Center
+          </p>
+        </div>
+      </div>
     </div>
 
     <script src="script.js"></script>
-</body>
-
+  </body>
 </html>

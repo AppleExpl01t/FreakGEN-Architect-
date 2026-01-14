@@ -57,6 +57,7 @@
     "electron-builder": "^25.1.8"
   },
   "dependencies": {
-    "electron-updater": "^6.6.2"
+    "electron-updater": "^6.6.2",
+    "jszip": "^3.10.1"
   }
 }

@@ -27,37 +27,11 @@ ipcRenderer.on('update-status', (event, data) => {
     }
 });
 
-const oscTypes = ["BasicWaves", "Superwave", "Wavetable", "Harmonic", "KarplusStrong", "Virtual Analog", "Waveshaper", "Two Op FM", "Formant", "Chords", "Speech", "Modal", "Noise", "Bass", "SawX", "Vocoder", "Harm", "WaveUser", "Sample", "Scan Grains", "Cloud Grains", "Hit Grains"];
-const chordTypes = ["Oct", "5th", "sus4", "minor", "m7", "m9", "m11", "69", "maj9", "maj7", "Major"];
-const oscParams = {
-    "BasicWaves": { w: "Morph: Sqr->Saw", t: "Sym/Pulse Width", s: "Sub-Osc Sine" },
-    "Superwave": { w: "Wave Select", t: "Detune", s: "Volume" },
-    "Wavetable": { w: "Table Select", t: "Cycle Pos", s: "Chorus" },
-    "Harmonic": { w: "Table Morph", t: "Sine-Tri Morph", s: "Chorus" },
-    "KarplusStrong": { w: "Bow Amount", t: "Strike Pos", s: "Decay" },
-    "Virtual Analog": { w: "Detune", t: "Shape (Sqr)", s: "Shape (Saw)" },
-    "Waveshaper": { w: "Waveform", t: "Wavefolder", s: "Asymmetry" },
-    "Two Op FM": { w: "Ratio", t: "Mod Index", s: "Feedback" },
-    "Formant": { w: "Ratio", t: "Formant Freq", s: "Window Shape" },
-    "Chords": { w: "Chord Type", t: "Inv/Freq", s: "Waveform" },
-    "Speech": { w: "Library", t: "Formant Shift", s: "Word Subset" },
-    "Modal": { w: "Inharm", t: "Brightness", s: "Damping" },
-    "Noise": { w: "Rate/SampleRed", t: "Noise Type", s: "Filt/Reso" },
-    "Bass": { w: "Saturation", t: "Pulse Width", s: "Noise/Sub" },
-    "SawX": { w: "Saw Spread", t: "Saw Shape", s: "Chorus" },
-    "Vocoder": { w: "Waveform", t: "Timbre", s: "Shape" },
-    "Harm": { w: "Spread", t: "Rectification", s: "Noise/Clip" },
-    "WaveUser": { w: "Table Select", t: "Cycle Pos", s: "Bitdepth" },
-    "Sample": { w: "Start", t: "Length", s: "Loop" },
-    "Scan Grains": { w: "Scan Speed", t: "Density", s: "Chaos" },
-    "Cloud Grains": { w: "Start Pos", t: "Density", s: "Chaos" },
-    "Hit Grains": { w: "Start Pos", t: "Density", s: "Chaos" }
-};
-const lfoShapes = ["Sine", "Triangle", "Saw", "Square", "S&H (Random)", "S&H Smooth"];
-const lfoSyncRates = ["8 bars", "4 bars", "2 bars", "1 bar", "1/2", "1/4", "1/8", "1/16"];
-const modSources = ["CycEnv", "Envelope", "LFO", "Pressure", "Key/Arp"];
-const fixedDests = ["Pitch", "Wave", "Timbre", "Cutoff"];
-const assignTargets = ["LFO Rate", "Reso", "Env Dec", "Env Sus", "Cyc Rise", "Cyc Fall", "Cyc Hold", "Cyc Amt", "Glide", "Osc Shape", "Spread", "Unispread", "Arp Rate"];
+const {
+    oscTypes, chordTypes, oscParams, lfoShapes, lfoSyncRates, modSources, fixedDests, assignTargets, ccMap, styleEngines
+} = require('./constants');
+const { rInt, rVal, getTime } = require('./utils');
+const JSZip = require('jszip'); // Use local dependency
 
 // State
 let currentPatch = { master: [], osc: [], env: [], cyc: [], lfo: [], matrixData: null, style: "init", intensity: "simple", engine: "unknown" };
@@ -74,12 +48,7 @@ if (!libraryPath) {
 let gallerySort = "name"; // 'name' or 'date'
 
 // Utilities
-const rInt = (max) => Math.floor(Math.random() * max);
-const rVal = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const getTime = (minMs, maxMs) => {
-    let val = rVal(minMs, maxMs);
-    return val >= 1000 ? (val / 1000).toFixed(2) + "s" : val + "ms";
-};
+// Utilities imported from utils.js
 
 // UI Elements
 const btnGenerate = document.getElementById('btn-generate');
@@ -602,7 +571,9 @@ function generateMaster(style, intensity, forceMono = false) {
 function generateOsc(style, forceEngine = "random") {
     let type = forceEngine;
     if (type === "random") {
-        type = style === "percussion" ? "Noise" : (style === "vocoder" ? "Vocoder" : oscTypes[rInt(oscTypes.length)]);
+        if (!styleEngines[style]) style = "random";
+        const allowed = styleEngines[style] || oscTypes;
+        type = allowed[rInt(allowed.length)];
     }
 
     const params = oscParams[type] || { w: "Wave", t: "Timbre", s: "Shape" };
@@ -643,9 +614,19 @@ function generateEnv(style) {
     let atk = (style === "percussion") ? "0ms" : (style === "pad" ? getTime(1000, 3000) : "5ms");
     if (style === "percussion") atkRaw = 0;
 
-    // Decay
+    // Decay / Release (Tuned V3.3.2)
     let decRaw = rInt(128);
-    let dec = (style === "percussion") ? getTime(20, 150) : getTime(200, 25000);
+    let dec;
+
+    if (style === "percussion") {
+        dec = getTime(20, 400); // Snappy
+    } else if (style === "bass") {
+        dec = getTime(100, 2000); // Max 2s
+    } else if (style === "pad") {
+        dec = getTime(1000, 8000); // Max 8s (was 25s!)
+    } else {
+        dec = getTime(200, 4000); // General max 4s
+    }
 
     // Filter Amt (Bipolar 0-127, 64=0)
     let fAmtRaw;
@@ -661,7 +642,15 @@ function generateEnv(style) {
     fAmt = famtVal; // e.g. -50, 20
 
     // Sustain
+    // Tune sustain probability
     let sus = genRaw(0, 100);
+    if (style === "bass" || style === "lead") {
+        // Bias towards higher sustain for playability
+        if (Math.random() > 0.3) {
+             const raw = rVal(100, 127); 
+             sus = { raw: raw, val: Math.floor(raw / 127 * 100) + "%" };
+        }
+    }
 
     return [
         { label: "Attack", val: atk, raw: atkRaw, tooltip: "Adjust the Attack slider in the Envelope section." },
@@ -1477,36 +1466,7 @@ async function importBackup() {
 
 // --- MIDI Logic ---
 
-const ccMap = {
-    // Oscillator
-    "Type": 9,
-    "Wave": 10,
-    "Timbre": 12,
-    "Shape": 13,
-
-    // Filter (Note: Filter Type is a button, not MIDI controllable)
-    "Cutoff": 23,
-    "Resonance": 83,
-
-    // Envelope
-    "Attack": 105,
-    "Decay": 106, // Decay/Release
-    "Sustain": 29,
-    "Filter Amt": 26,
-
-    // LFO (Note: LFO Shape and Sync are buttons, not MIDI controllable)
-    "LFO Rate Free": 93,
-    "LFO Rate Sync": 94,
-
-    // Cycling Env
-    "Cyc Rise": 102,
-    "Cyc Fall": 103,
-    "Cyc Hold": 28,
-    "Cyc Amount": 24,
-
-    // Glide
-    "Glide": 5
-};
+// ccMap imported from constants.js
 
 let midiAccess = null;
 let selectedMidiOut = null;
